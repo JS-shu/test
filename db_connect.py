@@ -13,6 +13,7 @@ class db_connect:
         self.read_config()
 
     def connect(self):
+<<<<<<< HEAD
         try:
             self.connection = pymysql.connect(
                 host=self.host,
@@ -47,6 +48,20 @@ class db_connect:
         except Exception as e:
             print(f"Error: {e}")
             self.customMsgBox("資料庫斷線失敗", "資料庫斷線失敗", "error")
+=======
+        self.connection = pymysql.connect(
+            host=self.host,
+            user=self.user,
+            password=self.password,
+            database=self.database,
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+    def disconnect(self):
+        if self.connection and self.connection.open:
+            self.connection.close()
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
 
     def getDevices(self):
         # 取得活動核銷綁定裝置
@@ -61,6 +76,7 @@ class db_connect:
             print(f"Error: {e}")
             self.customMsgBox("取得裝置失敗", "取得裝置失敗", "error")
 
+<<<<<<< HEAD
     def getMemberTicketSignData(self, data):
         # 取得會員資料
         try:
@@ -82,17 +98,35 @@ class db_connect:
         except Exception as e:
             print(f"Error: {e}")
             self.customMsgBox("取得會員資料失敗", "取得會員資料失敗", "error")
+=======
+    def getMember(self, approveCode):
+        # 線上流程使用,根據掃描到的QRcode進行approveCode驗證
+        try:
+            with self.connection.cursor() as cursor:
+                sql = f"SELECT * FROM new_member WHERE approve_code = '{approveCode}'"
+                cursor.execute(sql)
+                member = cursor.fetchone()
+
+                return member 
+        except Exception as e:
+            print(f"Error: {e}")
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
 
     def getMemberSignTicketByTicketID(self, ticketID):
         # 根據核銷裝置綁定的ticketID取得已登記參與活動的會員
         try:
             with self.connection.cursor() as cursor:
+<<<<<<< HEAD
                 sql = f"SELECT s.member_id,s.id, s.name, s.ticket_id, m.no AS member_no FROM new_ticket_sign AS s LEFT JOIN new_member AS m on s.member_id = m.id WHERE ticket_id in ({ticketID})";
+=======
+                sql = f"SELECT s.member_id,s.id, s.name, s.ticket_id, m.approve_code AS member_approve_code FROM new_ticket_sign AS s LEFT JOIN new_member AS m on s.member_id = m.id WHERE ticket_id in ({ticketID})";
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
                 cursor.execute(sql)
                 members = cursor.fetchall()
                 result_dict = defaultdict(list)
 
                 for member in members:
+<<<<<<< HEAD
                     member_no = member.get('member_no')
 
                     if not member_no:
@@ -100,20 +134,52 @@ class db_connect:
 
                     if member_no not in result_dict:
                         result_dict[member_no] = {'member_id':member.get('member_id'),'name': member.get('name', ''), 'ticket_id': []}
+=======
+                    approve_code = member.get('member_approve_code')
+
+                    if not approve_code:
+                        continue
+
+                    if approve_code not in result_dict:
+                        result_dict[approve_code] = {'member_id':member.get('member_id'),'name': member.get('name', ''), 'ticket_id': []}
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
 
                         ticket_id = member.get('ticket_id')
                         ticket_sign_id = member.get('id', '')
                         ticket_dict = {ticket_id: {'ticket_sign_id': ticket_sign_id}}
+<<<<<<< HEAD
                         result_dict[member_no]['ticket_id'].append(ticket_dict)
+=======
+                        result_dict[approve_code]['ticket_id'].append(ticket_dict)
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
                     else :
                         ticket_id = member.get('ticket_id')
                         ticket_sign_id = member.get('id', '')
                         ticket_dict = {ticket_id: {'ticket_sign_id': ticket_sign_id}}
+<<<<<<< HEAD
                         result_dict[member_no]['ticket_id'].append(ticket_dict)
+=======
+                        result_dict[approve_code]['ticket_id'].append(ticket_dict)
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
                 return result_dict
         except Exception as e:
             print(f"Error: {e}")
 
+<<<<<<< HEAD
+=======
+    def getMemberTickets(self, memberID, ticketID):
+        # 線上核銷使用，根據會員&核銷裝置綁定的ticketID取得已登記的活動
+        try:
+            with self.connection.cursor() as cursor:
+                sql = f"SELECT id, ticket_id, exhibit_id, member_id, income_id, ticket_no, member_no, approve_code, `name`,email, phone_number, cid  FROM new_ticket_sign WHERE member_id = {memberID} AND ticket_id IN ({ticketID})";
+                cursor.execute(sql)
+                memberInTicketSign = cursor.fetchall()
+
+                return memberInTicketSign
+        except Exception as e:
+            print(f"Error: {e}")
+
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
     def getTicketBannerByID(self, ticketID):
         # 取得活動Banner，作為票券列印使用
         try:
@@ -156,7 +222,11 @@ class db_connect:
         except Exception as e:
             print(f"Error: {e}")
 
+<<<<<<< HEAD
     def memberCheckIn(self, ticketSignId):
+=======
+    def checkMemberCheckIn(self, ticketSignId):
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
         # 檢查報名資料是否已存在
         try:
             with self.connection.cursor() as cursor:
@@ -181,5 +251,9 @@ class db_connect:
                     result.add(member['member_id'])
 
                 return list(result)
+<<<<<<< HEAD
+=======
+
+>>>>>>> a44558cd81f58cab7e3057d623fd2c742aedcfe2
         except Exception as e:
             print(f"Error: {e}")
