@@ -329,7 +329,7 @@ class MainWindow(QWidget):
         targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
 
         if imageData:
-            urls = [f"{targetUrl}{data['exhibit_id']}/{data['image']}" for data in imageData]        
+            urls = [f"{targetUrl}{data['exhibit_id']}/{data['image_pos']}" for data in imageData]        
             return urls
         return False
     
@@ -347,8 +347,8 @@ class MainWindow(QWidget):
         targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
 
         for data in imageData:
-            if data.get('image') != '':
-                pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['image']}")   
+            if data.get('image_pos') != '':
+                pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['image_pos']}")   
                 data['pilImage'] = pilImage
 
         return imageData

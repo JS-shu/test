@@ -118,7 +118,7 @@ class db_connect:
         # 取得活動Banner，作為票券列印使用
         try:
             with self.connection.cursor() as cursor:
-                sql = f"SELECT id, exhibit_id, image FROM new_ticket WHERE id IN ({ticketID})";
+                sql = f"SELECT id, exhibit_id, image_pos FROM new_ticket WHERE id IN ({ticketID})";
                 cursor.execute(sql)
                 memberInTicketSign = cursor.fetchall()
 
