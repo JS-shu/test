@@ -55,9 +55,8 @@ class MainWindow(QWidget):
         self.cameraDetect.cameraInit()
 
         # USB設備連線檢查
-        # for test
-        # usbDeviceCheck = UsbDeviceCheck(self)
-        # usbDeviceCheck.checkUsbLink()
+        usbDeviceCheck = UsbDeviceCheck(self)
+        usbDeviceCheck.checkUsbLink()
 
         # 讀取綁定裝置資料
         self.deviceInit()
@@ -106,9 +105,8 @@ class MainWindow(QWidget):
         self.devices = self.db.getDevices()
         self.devices = {device['id']: device for device in self.devices}
 
-        # for test
-        # self.printer = QRCodePrinter(self.usbDviceResult.device)
-        # self.printerPapperCheck()
+        self.printer = QRCodePrinter(self.usbDviceResult.device)
+        self.printerPapperCheck()
 
         for deviceID, deviceInfo in self.devices.items():
             self.ui.deviceCombobox.addItem(deviceInfo['name'], deviceID)
@@ -292,9 +290,8 @@ class MainWindow(QWidget):
         if ticketID != '':
             imageUrls = self.onlinReformImageData(ticketID)
             if imageUrls:
-                # for test
-                # if (self.printerPapperCheck()):
-                #     self.printer.printTickets('online', member, imageUrls) # 列印票券
+                if (self.printerPapperCheck()):
+                    self.printer.printTickets('online', member, imageUrls) # 列印票券
                 print(imageUrls)
 
     def offlineReimburse(self, scanResult):
@@ -320,9 +317,8 @@ class MainWindow(QWidget):
                 imageUrls = self.offlineReformImageData(ticketID)
 
             if imageUrls:
-                # for test
-                # if (self.printerPapperCheck()):
-                #     self.printer.printTickets('offline', memberList, imageUrls) # 列印票券
+                if (self.printerPapperCheck()):
+                    self.printer.printTickets('offline', memberList, imageUrls) # 列印票券
                     print(imageUrls)
         else:
             self.customMsgBox.show("Warning", "查無該會員資料!")
@@ -352,9 +348,7 @@ class MainWindow(QWidget):
 
         for data in imageData:
             if data.get('image') != '':
-                # for test
-                # pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['image']}")   
-                pilImage = '' # for test
+                pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['image']}")   
                 data['pilImage'] = pilImage
 
         return imageData
