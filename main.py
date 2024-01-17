@@ -12,7 +12,7 @@ from ui import Ui_MainWindow
 from cameraDetect import CameraDetect
 from customMsgBox import CustomMsgBox
 from topLinkIntranet import TopLinkIntranet
-# from usbDeviceCheck import UsbDeviceCheck
+from usbDeviceCheck import UsbDeviceCheck
 
 
 class MainWindow(QWidget):
@@ -36,6 +36,8 @@ class MainWindow(QWidget):
         self.bindTicket = ''
         # 核銷機制
         self.offlineValue = None
+        # 會員電話綁No
+        self.getMemberPhoneBindMemberNo = None
 
         # GUI 介面設定
         self.ui = Ui_MainWindow()
@@ -53,14 +55,16 @@ class MainWindow(QWidget):
         self.cameraDetect.cameraInit()
 
         # USB設備連線檢查
-        usbDeviceCheck = UsbDeviceCheck(self)
-        usbDeviceCheck.checkUsbLink()
+        # for test
+        # usbDeviceCheck = UsbDeviceCheck(self)
+        # usbDeviceCheck.checkUsbLink()
 
         # 讀取綁定裝置資料
         self.deviceInit()
 
         # 核銷機制異動觸發事件
         self.ui.offlineCombobox.currentIndexChanged.connect(self.offlineChanged)
+        self.ui.inputButton.clicked.connect(self.onInputButtonClicked)
 
         # 相機線程
         self.cameraThread = None
@@ -102,8 +106,9 @@ class MainWindow(QWidget):
         self.devices = self.db.getDevices()
         self.devices = {device['id']: device for device in self.devices}
 
-        self.printer = QRCodePrinter(self.usbDviceResult.device)
-        self.printerPapperCheck()
+        # for test
+        # self.printer = QRCodePrinter(self.usbDviceResult.device)
+        # self.printerPapperCheck()
 
         for deviceID, deviceInfo in self.devices.items():
             self.ui.deviceCombobox.addItem(deviceInfo['name'], deviceID)
@@ -201,18 +206,24 @@ class MainWindow(QWidget):
                 self.bindTicket = self.devices.get(selectedDeviceID)['ticket_id']
                 if self.bindTicket == '':
                     self.customMsgBox.show("Error", f"Device Name: 『{deviceName}』\n\n\n 目前未綁定活動資料。\n\n\n請先綁定活動資料再使用。")
-                    
+
                     self.ui.deviceCombobox.setCurrentIndex(0) # device select init
                     self.ui.deviceNameLabel.clear()
                     self.ui.deviceNameLabel.setText("     **  請重新選擇裝置  **")
                     return
-
-                if self.offlineValue != 1:
-                    # 線上核銷
-                    offlineSelected = '線上核銷'
                 else :
-                    offlineSelected = '離線核銷'
-                    self.offlineInit({'selectedDeviceID':selectedDeviceID, 'deviceName': deviceName})
+                    self.ui.inputLabel.show()
+                    self.ui.inputButton.show()
+
+                    # 會員bind會員no資料
+                    self.getMemberPhoneBindMemberNo = self.db.getMemberPhoneBindMemberNo(self.bindTicket)
+
+                    if self.offlineValue != 1:
+                        # 線上核銷
+                        offlineSelected = '線上核銷'
+                    else :
+                        offlineSelected = '離線核銷'
+                        self.offlineInit({'selectedDeviceID':selectedDeviceID, 'deviceName': deviceName})
 
                 self.customMsgBox.show("Information", f"核銷方式: {offlineSelected}\nDevice ID: {selectedDeviceID}\nDevice Name: {deviceName}")
                 self.ui.deviceNameLabel.setText(f"     **  {deviceName}  **")
@@ -281,8 +292,9 @@ class MainWindow(QWidget):
         if ticketID != '':
             imageUrls = self.onlinReformImageData(ticketID)
             if imageUrls:
-                if (self.printerPapperCheck()):
-                    self.printer.printTickets('online', member, imageUrls) # 列印票券
+                # for test
+                # if (self.printerPapperCheck()):
+                #     self.printer.printTickets('online', member, imageUrls) # 列印票券
                 print(imageUrls)
 
     def offlineReimburse(self, scanResult):
@@ -308,8 +320,9 @@ class MainWindow(QWidget):
                 imageUrls = self.offlineReformImageData(ticketID)
 
             if imageUrls:
-                if (self.printerPapperCheck()):
-                    self.printer.printTickets('offline', memberList, imageUrls) # 列印票券
+                # for test
+                # if (self.printerPapperCheck()):
+                #     self.printer.printTickets('offline', memberList, imageUrls) # 列印票券
                     print(imageUrls)
         else:
             self.customMsgBox.show("Warning", "查無該會員資料!")
@@ -339,8 +352,10 @@ class MainWindow(QWidget):
 
         for data in imageData:
             if data.get('image') != '':
-                pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['image']}")   
-                data['pilImage'] = ''
+                # for test
+                # pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['image']}")   
+                pilImage = '' # for test
+                data['pilImage'] = pilImage
 
         return imageData
 
@@ -426,3 +441,17 @@ class MainWindow(QWidget):
         except Exception as e:
             self.customMsgBox.show("Warning", e)
             return False
+
+    def onInputButtonClicked(self):
+        # 判斷核銷方式
+        phone_number = self.ui.inputLabel.text()
+        memberNo = self.getMemberPhoneBindMemberNo.get(phone_number)
+
+        if not memberNo:
+            self.customMsgBox.show("Error", "查無此號碼資料。")
+            return
+
+        if self.offlineValue:
+            self.offlineReimburse(memberNo)
+        else:
+            self.onlineReimburse(memberNo)

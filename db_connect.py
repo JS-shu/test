@@ -183,3 +183,16 @@ class db_connect:
                 return list(result)
         except Exception as e:
             print(f"Error: {e}")
+
+    def getMemberPhoneBindMemberNo(self, ticketID):
+        # 根據核銷裝置綁定的ticketID取得已登記參與活動的會員
+        try:
+            with self.connection.cursor() as cursor:
+                sql = f"SELECT m.phone_number AS phone_number, m.no AS member_no FROM new_ticket_sign s LEFT JOIN new_member AS m on s.member_id = m.id WHERE ticket_id in ({ticketID}) GROUP BY member_no";
+                cursor.execute(sql)
+                data = cursor.fetchall()
+
+                result = {item['phone_number']: item['member_no'] for item in data}
+                return result
+        except Exception as e:
+            print(f"Error: {e}")

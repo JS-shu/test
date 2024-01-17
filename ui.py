@@ -1,6 +1,6 @@
 from PyQt6.QtGui import QPixmap, QFont
 from PyQt6.QtCore import QSize
-from PyQt6.QtWidgets import QLabel, QComboBox, QVBoxLayout, QHBoxLayout, QFormLayout, QGraphicsScene, QGraphicsView
+from PyQt6.QtWidgets import QLabel, QComboBox, QVBoxLayout, QHBoxLayout, QFormLayout, QGraphicsScene, QGraphicsView, QLineEdit, QPushButton
 
 
 class Ui_MainWindow(object):
@@ -19,13 +19,13 @@ class Ui_MainWindow(object):
 
         # 左半部
         # 相機嵌入框畫面
-        self.cameraLabel = QLabel("")
+        self.cameraLabel = QLabel('')
         self.cameraLabel.setStyleSheet("border: 2px dashed #fb4934; border-radius: 10px;")
 
         # 右半部
         # 離線核銷更新資訊
-        self.offlineTitleInfoLabel = QLabel("")
-        self.offlineInfoLabel = QLabel("")
+        self.offlineTitleInfoLabel = QLabel('')
+        self.offlineInfoLabel = QLabel('')
         self.offlineTitleInfoLabel.setFont(self.labelTitleFont)
         self.offlineInfoLabel.setFont(self.labelTitleFont)
         self.offlineTitleInfoLabel.setStyleSheet("color: #d79921;font-size: 18px;")
@@ -33,7 +33,7 @@ class Ui_MainWindow(object):
 
         # 鏡頭選擇
         self.cameraTitleLable = QLabel("鏡頭")
-        self.cameraInfoLabel = QLabel("")
+        self.cameraInfoLabel = QLabel('')
         self.cameraCombobox = QComboBox()
         self.cameraCombobox.addItem("請選擇鏡頭", -1)
         self.cameraTitleLable.setFont(self.labelTitleFont)
@@ -51,7 +51,7 @@ class Ui_MainWindow(object):
 
         # 設備選單
         self.deviceTitleLabel = QLabel("裝置綁定")
-        self.deviceNameLabel = QLabel("")
+        self.deviceNameLabel = QLabel('')
         self.deviceCombobox = QComboBox()
         self.deviceCombobox.addItem("請選擇掃描裝置", -1)
 
@@ -61,10 +61,19 @@ class Ui_MainWindow(object):
         self.deviceCombobox.setFont(self.labelFont)
 
         # 會員 & 活動資訊
-        self.memberLabel = QLabel("")
-        self.memberNameLabel = QLabel("")
+        self.memberLabel = QLabel('')
+        self.memberNameLabel = QLabel('')
         self.memberLabel.setFont(self.labelTitleFont)
         self.memberNameLabel.setFont(self.labelFont)
+
+        # 創建輸入框
+        self.inputLabel = QLineEdit('')
+        self.inputLabel.setPlaceholderText('輸入手機號碼...')
+        self.inputButton = QPushButton('送出')
+        self.inputButton.setStyleSheet("max-width: 60px; font-size: 18px;")
+        self.inputLabel.setStyleSheet("width: 250px; font-size: 18px;")
+        self.inputLabel.hide()
+        self.inputButton.hide()
 
     def guiSetting(self, MainWindow):
         # Layout
@@ -96,6 +105,7 @@ class Ui_MainWindow(object):
         mainLayout.addLayout(leftLayout, 3)
         mainLayout.addLayout(rightLayout, 1)
 
+        rightLayout.addRow(self.inputLabel, self.inputButton)
         # 設置樣式
         MainWindow.setStyleSheet("""
             background-color: #504945;
