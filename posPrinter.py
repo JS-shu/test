@@ -13,9 +13,9 @@ class QRCodePrinter:
         return status
 
     def printTickets(self, mode, member=False, urls=[]):
-        if member :
-            self.printMember(member)
         for url in urls:
+            if member :
+                self.printMember(member)
             if mode == 'online':
                 self.printQrCodeOnline(url)
             else:
