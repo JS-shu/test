@@ -18,8 +18,6 @@ from usbDeviceCheck import UsbDeviceCheck
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        # 鏡頭
-        self.selectedCamera = 0
         # 離線核銷會員紀錄
         self.offlineCheckedMember = []
         # 核銷選擇紀錄
@@ -55,8 +53,8 @@ class MainWindow(QWidget):
         self.cameraDetect.cameraInit()
 
         # USB設備連線檢查
-        usbDeviceCheck = UsbDeviceCheck(self)
-        usbDeviceCheck.checkUsbLink()
+        self.usbDeviceCheck = UsbDeviceCheck(self)
+        self.usbDeviceCheck.checkUsbLink()
 
         # 讀取綁定裝置資料
         self.deviceInit()
@@ -64,9 +62,6 @@ class MainWindow(QWidget):
         # 核銷機制異動觸發事件
         self.ui.offlineCombobox.currentIndexChanged.connect(self.offlineChanged)
         self.ui.inputButton.clicked.connect(self.onInputButtonClicked)
-
-        # 相機線程
-        self.cameraThread = None
 
         # 定時器
         self.timerInsertCheckinData = QTimer(self)
@@ -105,7 +100,7 @@ class MainWindow(QWidget):
         self.devices = self.db.getDevices()
         self.devices = {device['id']: device for device in self.devices}
 
-        self.printer = QRCodePrinter(self.usbDviceResult.device)
+        self.printer = QRCodePrinter(self.usbDeviceCheck.usbDviceResult.device)
         self.printerPapperCheck()
 
         for deviceID, deviceInfo in self.devices.items():
