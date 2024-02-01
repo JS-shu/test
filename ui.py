@@ -66,13 +66,35 @@ class Ui_MainWindow(object):
         self.memberLabel.setFont(self.labelTitleFont)
         self.memberNameLabel.setFont(self.labelFont)
 
-        # 創建輸入框
-        self.inputLabel = QLineEdit('')
-        self.inputLabel.setPlaceholderText('輸入手機號碼...')
+        # 身分認證輸入框
+        self.telLabel = QLabel('手機號碼')
+        self.telLabel.setFont(self.labelTitleFont)
+        self.telInputLabel = QLineEdit('')
+        self.telInputLabel.setPlaceholderText('輸入手機號碼...')
+        self.telInputLabel.setMaxLength(10)
+        self.cidLabel = QLabel('身分證字號')
+        self.cidLabel.setFont(self.labelTitleFont)
+        self.cidInputLabel = QLineEdit('')
+        self.cidInputLabel.setPlaceholderText('輸入身分證字號後六碼...')
+        self.cidInputLabel.setMaxLength(6)
+
         self.inputButton = QPushButton('送出')
         self.inputButton.setStyleSheet("max-width: 60px; font-size: 18px;")
-        self.inputLabel.setStyleSheet("width: 250px; font-size: 18px;")
-        self.inputLabel.hide()
+        self.telInputLabel.setStyleSheet("font-size: 18px;")
+        self.cidInputLabel.setStyleSheet("font-size: 18px;")
+
+        #  自定義字型設定
+        # self.telLabel.setStyleSheet("""
+        #     font-family: Arial, sans-serif;
+        #     font-weight: normal;
+        #     font-size: 40px;
+        #     text-decoration: underline;
+        #     font-style: italic;
+        # """)
+        self.telLabel.hide()
+        self.cidLabel.hide()
+        self.telInputLabel.hide()
+        self.cidInputLabel.hide()
         self.inputButton.hide()
 
     def guiSetting(self, MainWindow):
@@ -102,10 +124,13 @@ class Ui_MainWindow(object):
         # 會員 & 活動資訊
         rightLayout.addRow(self.memberLabel, self.memberNameLabel)
         mainLayout = QHBoxLayout(MainWindow)
+
+        rightLayout.addRow(self.telLabel, self.telInputLabel)
+        rightLayout.addRow(self.cidLabel, self.cidInputLabel)
+        rightLayout.addRow(self.inputButton)
+        
         mainLayout.addLayout(leftLayout, 3)
         mainLayout.addLayout(rightLayout, 1)
-
-        rightLayout.addRow(self.inputLabel, self.inputButton)
         # 設置樣式
         MainWindow.setStyleSheet("""
             background-color: #504945;

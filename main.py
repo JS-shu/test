@@ -205,7 +205,11 @@ class MainWindow(QWidget):
                     self.ui.deviceNameLabel.setText("     **  請重新選擇裝置  **")
                     return
                 else :
-                    self.ui.inputLabel.show()
+
+                    self.ui.telLabel.show()
+                    self.ui.telInputLabel.show()
+                    self.ui.cidLabel.show()
+                    self.ui.cidInputLabel.show()
                     self.ui.inputButton.show()
 
                     # 會員bind會員no資料
@@ -320,11 +324,11 @@ class MainWindow(QWidget):
 
     def onlinReformImageData(self, ticketID):
         # 取得併重整圖檔資料
-        imageData = self.db.getTicketBannerByID(ticketID)
+        posData = self.db.getTicketBannerByID(ticketID)
         targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
 
-        if imageData:
-            urls = [f"{targetUrl}{data['exhibit_id']}/{data['image_pos']}" for data in imageData]        
+        if posData:
+            urls = [f"{targetUrl}{data['exhibit_id']}/{data['pos_image1']}" for data in posData]        
             return urls
         return False
     
@@ -342,8 +346,8 @@ class MainWindow(QWidget):
         targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
 
         for data in imageData:
-            if data.get('image_pos') != '':
-                pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['image_pos']}")   
+            if data.get('pos_image1') != '':
+                pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['pos_image1']}")   
                 data['pilImage'] = pilImage
 
         return imageData
@@ -433,14 +437,25 @@ class MainWindow(QWidget):
 
     def onInputButtonClicked(self):
         # 判斷核銷方式
-        phone_number = self.ui.inputLabel.text()
-        memberNo = self.getMemberPhoneBindMemberNo.get(phone_number)
+        phoneNumber = self.ui.telInputLabel.text()
+        cidNumber = self.ui.cidInputLabel.text()
 
-        if not memberNo:
-            self.customMsgBox.show("Error", "查無此號碼資料。")
+        self.ui.telInputLabel.clear()
+        self.ui.cidInputLabel.clear()
+        if phoneNumber == '' or cidNumber == '' or len(phoneNumber) != 10 or len(cidNumber) != 6:
+            self.customMsgBox.show("Warning", "請輸入手機號碼及身分證後六碼。")
             return
+        else :
+            memberNo = self.getMemberPhoneBindMemberNo.get(phoneNumber)
 
-        if self.offlineValue:
-            self.offlineReimburse(memberNo)
-        else:
-            self.onlineReimburse(memberNo)
+            if not memberNo:
+                self.customMsgBox.show("Error", "查無此號碼資料。")
+                return
+            if memberNo['cid'] != cidNumber:
+                self.customMsgBox.show("Warning", "身分證不正確。")
+                return
+
+            if self.offlineValue:
+                self.offlineReimburse(memberNo['member_no'])
+            else:
+                self.onlineReimburse(memberNo['member_no'])
