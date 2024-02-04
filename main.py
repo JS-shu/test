@@ -18,6 +18,10 @@ from usbDeviceCheck import UsbDeviceCheck
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+
+        self.ticketBanner = None
+
+        self.targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
         # 離線核銷會員紀錄
         self.offlineCheckedMember = []
         # 核銷選擇紀錄
@@ -215,6 +219,8 @@ class MainWindow(QWidget):
                     # 會員bind會員no資料
                     self.getMemberPhoneBindMemberNo = self.db.getMemberPhoneBindMemberNo(self.bindTicket)
 
+                    # 活動圖檔資料
+                    self.ticketBanner = self.getTicketImage(self.bindTicket)
                     if self.offlineValue != 1:
                         # 線上核銷
                         offlineSelected = '線上核銷'
@@ -254,8 +260,8 @@ class MainWindow(QWidget):
         self.ui.memberNameLabel.setText(member['name'])
 
         uniqueTicketIDs = set()
-        checkedDatas = []
-
+        checkedDatas = None
+        print(member)
         for res in member['ticketData']:
             ticketID = res.get('ticket_id')
             ticketSignID = res.get('id')
@@ -275,34 +281,29 @@ class MainWindow(QWidget):
                     uniqueTicketIDs.add(ticketID)
                     ticketID = ','.join(map(str, uniqueTicketIDs))
             else:
-                rePrintData = {
-                    'ticketID': ticketID,
-                    'member': member,
-                }
-                checkedDatas.append(rePrintData)
+                checkedDatas = True
                 ticketID = '' # 清空票券
 
         if checkedDatas:
+            checkedDatas = member
             self.customMsgBox.show("Warning", f"會員 : {member['name']} - 已核銷入場，是否需要重印票券?", checkedDatas)
 
-        # # 取得活動票券圖檔，目前採活動banner
+        # # 取得活動票券圖檔
         if ticketID != '':
-            imageUrls = self.onlinReformImageData(ticketID)
-            if imageUrls:
+            if self.ticketBanner:
                 if (self.printerPapperCheck()):
-                    self.printer.printTickets('online', member, imageUrls) # 列印票券
-                print(imageUrls)
+                    self.printer.printTickets('offline', member, self.ticketBanner) # 列印票券
+                print(self.ticketBanner)
 
     def offlineReimburse(self, scanResult):
         # 離線核銷
         if self.bindTicket == '':
             self.customMsgBox.show("Error", "請先綁定活動資料再使用。")
-            return
+            return 
 
         memberList = self.members.get(scanResult, [])
 
         if len(memberList) != 0:
-            imageUrls = None
             ticketID = set()
             if memberList['member_id'] in self.offlineCheckedMember:
                 self.customMsgBox.show("Warning", f"會員 : {memberList['name']} - 已核銷入場，是否需要重印票券?", memberList)
@@ -313,44 +314,28 @@ class MainWindow(QWidget):
                         if value['ticket_sign_id'] not in self.offlineCheckinData['ticketSignID']:
                             self.offlineCheckinData['ticketSignID'].append(value['ticket_sign_id'])
                             ticketID.add(key)
-                imageUrls = self.offlineReformImageData(ticketID)
 
-            if imageUrls:
+            if self.ticketBanner:
                 if (self.printerPapperCheck()):
-                    self.printer.printTickets('offline', memberList, imageUrls) # 列印票券
-                    print(imageUrls)
+                    self.printer.printTickets('offline', memberList, self.ticketBanner) # 列印票券
         else:
             self.customMsgBox.show("Warning", "查無該會員資料!")
 
-    def onlinReformImageData(self, ticketID):
-        # 取得併重整圖檔資料
-        posData = self.db.getTicketBannerByID(ticketID)
-        targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
-
-        if posData:
-            urls = [f"{targetUrl}{data['exhibit_id']}/{data['pos_image1']}" for data in posData]        
-            return urls
-        return False
-    
-    def offlineReformImageData(self, ticketID):
-        # 離線活動Banner圖檔重整
-        matchingData = []
-        for info in self.ticketBanner:
-            if info['id'] in ticketID:
-                matchingData.append(info['pilImage'])
-        return matchingData 
-
-    def offlineGetImage(self, ticketID):
+    def getTicketImage(self, ticketID):
         # 離線活動圖檔下載
         imageData = self.db.getTicketBannerByID(ticketID)
-        targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
 
+        resData = []
         for data in imageData:
+            data['pilImage'] = []
             if data.get('pos_image1') != '':
-                pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['pos_image1']}")   
-                data['pilImage'] = pilImage
-
-        return imageData
+                pilImage = self.printer.downloadImages(f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image1']}")   
+                data['pilImage'].append({'image':pilImage,'text':data['pos_text1']})
+            if data.get('pos_image2') != '':
+                pilImage = self.printer.downloadImages(f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image2']}")   
+                data['pilImage'].append({'image':pilImage,'text':data['pos_text2']})
+            resData.append(data['pilImage'])
+        return resData
 
     def insertCheckinData(self):
         # 定時插入核銷資料
@@ -416,7 +401,7 @@ class MainWindow(QWidget):
             # 報名會員資料
             self.members = self.db.getMemberSignTicketByTicketID(self.bindTicket)
             # 活動圖檔資料
-            self.ticketBanner = self.offlineGetImage(self.bindTicket)
+            # self.ticketBanner = self.getTicketImage(self.bindTicket)
             # 會員登記入場資料
             self.offlineCheckedMember = self.db.getMemberCheckIn(self.bindTicket)
 

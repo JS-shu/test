@@ -12,16 +12,17 @@ class QRCodePrinter:
         status = self.ser.paper_status()
         return status
 
-    def printTickets(self, mode, member=False, urls=[]):
-        for url in urls:
+    def printTickets(self, mode, member=False, datas=[]):
+        for data in datas:
             if member :
                 self.printMember(member)
             if mode == 'online':
-                self.printQrCodeOnline(url)
+                self.printQrCodeOnline(data)
             else:
-                self.printQrCodeOffline(url)
+                self.printQrCodeOffline(data)
 
     def printMember(self, member):
+        self.ser.set_with_default(align="left", font='a', width=2, height=2, custom_size=2)
         self.ser._raw(f"會員: {member['name']}\n".encode('big5'))
 
     def printQrCodeOnline(self, url):
@@ -67,6 +68,9 @@ class QRCodePrinter:
 
             return new_img
 
-    def printQrCodeOffline(self, image):
-        self.ser.image(image)
-        self.ser.cut(mode='PART')
+    def printQrCodeOffline(self, data):
+        for d in data:
+            self.ser.image(d['image'], center=True)
+            self.ser.set_with_default(align="center",width=3, height=3, custom_size=3)
+            self.ser._raw(f"{d['text']}\n".encode('big5'))
+            self.ser.cut(mode='PART')

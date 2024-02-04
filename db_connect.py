@@ -1,4 +1,4 @@
-import pymysql
+import pymysql, traceback
 from collections import defaultdict
 from configparser import ConfigParser
 from datetime import datetime
@@ -120,11 +120,11 @@ class db_connect:
             with self.connection.cursor() as cursor:
                 sql = f"SELECT t.id AS id, t.exhibit_id AS exhibit_id, pd.pos_image1 AS pos_image1, pd.pos_image2 AS pos_image2, pd.pos_text1 AS pos_text1, pd.pos_text2 AS pos_text2 FROM new_ticket t LEFT JOIN new_ticket_pos_data AS pd ON t.id = pd.ticket_id WHERE t.id IN ({ticketID})";
                 cursor.execute(sql)
-                memberInTicketSign = cursor.fetchall()
-
-                return memberInTicketSign
+                data = cursor.fetchall()
+                return data
         except Exception as e:
             print(f"Error: {e}")
+            traceback.print_exc()
 
     def getTicketByID(self, ticketID):
         # 取得活動
