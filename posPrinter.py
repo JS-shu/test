@@ -22,8 +22,8 @@ class QRCodePrinter:
                 self.printQrCodeOffline(data)
 
     def printMember(self, member):
-        self.ser.set_with_default(align="left", font='a', width=2, height=2, custom_size=2)
-        self.ser._raw(f"會員: {member['name']}\n".encode('big5'))
+        self.ser.set_with_default(align="left", font='a', width=1, height=1, custom_size=1)
+        self.ser._raw(f"會員: {member['name']}\n\n".encode('big5'))
 
     def printQrCodeOnline(self, url):
         # 下載 QR 碼圖片
@@ -70,7 +70,12 @@ class QRCodePrinter:
 
     def printQrCodeOffline(self, data):
         for d in data:
-            self.ser.image(d['image'], center=True)
-            self.ser.set_with_default(align="center",width=3, height=3, custom_size=3)
-            self.ser._raw(f"{d['text']}\n".encode('big5'))
+            if d['image'] != '':
+                self.ser.image(d['image'], center=True)
+            self.ser.set_with_default(align="center",width=d['fontSize'], height=d['fontSize'], custom_size=d['fontSize'])
+
+            if d['text'] != '':
+                self.ser._raw('\n'.encode('big5'))
+                self.ser._raw(f"{d['text']}\n".encode('big5'))
+
             self.ser.cut(mode='PART')
