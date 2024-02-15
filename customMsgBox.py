@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QMessageBox, QPushButton, QLineEdit, QDialog, QVBoxLayout
 
+import traceback
 
 class CustomMsgBox:
     def __init__(self, parent=None):
@@ -86,25 +87,25 @@ class CustomMsgBox:
                         checkTicketID = checkedDatas.get('ticket_id', [])
                         if checkTicketID:
                             ticketIDs = [list(ticket.keys())[0] for ticket in checkTicketID]
-                        imageUrls = self.parent.offlineReformImageData(ticketIDs)
-                        if imageUrls:
-                            # if (self.parent.printerPapperCheck()):
-                            #     self.parent.printer.printTickets('offline', checkedDatas, imageUrls) # 列印票券
-                                print(imageUrls)
+                            imageDatas = self.parent.refactorImageData(ticketIDs)
+                        if imageDatas:
+                            if (self.parent.printerPapperCheck()):
+                                # self.parent.printer.printTickets('offline', checkedDatas, imageDatas) # 列印票券
+                                print("P!")
                     else :
-                        # 線上
-                        ticketIDs = [data['ticketID'] for data in checkedDatas]
-                        sTicketIDs = ','.join(map(str, ticketIDs))
-                        imageUrls = self.parent.onlinReformImageData(sTicketIDs)
+                        imageDatas = self.parent.refactorImageData(checkedDatas['ticketID'])  
 
-                        if imageUrls:
-                            # if (self.parent.printerPapperCheck()):
-                            #     self.parent.printer.printTickets('online', False, imageUrls) # 列印票券
-                                print(imageUrls)
+                        # 線上
+                        if imageDatas:
+                            if (self.parent.printerPapperCheck()):
+                                # self.parent.printer.printTickets('offline', checkedDatas['member'], imageDatas) # 列印票券
+                                print("P!")
             else:
                 self.show("Warning", "設備碼錯誤!")
         except Exception as e:
             self.show("Warning", e)
+            traceback_str = traceback.format_exc()
+            print(f"An exception occurred: {e} \n Traceback: {traceback_str}")
 
     def rejectDialog(self):
         # 取消設備碼輸入

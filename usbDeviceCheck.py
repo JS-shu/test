@@ -4,6 +4,7 @@ class UsbDeviceCheck:
     def __init__(self, parent=None):
         self.parent = parent
         self.customMsgBox = parent.customMsgBox
+        self.usbDviceResult = None
 
     def checkUsbLink(self):
         try:

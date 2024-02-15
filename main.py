@@ -14,12 +14,13 @@ from customMsgBox import CustomMsgBox
 from topLinkIntranet import TopLinkIntranet
 from usbDeviceCheck import UsbDeviceCheck
 
-
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        # 鏡頭
-        self.selectedCamera = 0
+
+        self.ticketBanner = None
+
+        self.targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
         # 離線核銷會員紀錄
         self.offlineCheckedMember = []
         # 核銷選擇紀錄
@@ -55,9 +56,8 @@ class MainWindow(QWidget):
         self.cameraDetect.cameraInit()
 
         # USB設備連線檢查
-        # for test
-        # usbDeviceCheck = UsbDeviceCheck(self)
-        # usbDeviceCheck.checkUsbLink()
+        self.usbDeviceCheck = UsbDeviceCheck(self)
+        self.usbDeviceCheck.checkUsbLink()
 
         # 讀取綁定裝置資料
         self.deviceInit()
@@ -65,9 +65,6 @@ class MainWindow(QWidget):
         # 核銷機制異動觸發事件
         self.ui.offlineCombobox.currentIndexChanged.connect(self.offlineChanged)
         self.ui.inputButton.clicked.connect(self.onInputButtonClicked)
-
-        # 相機線程
-        self.cameraThread = None
 
         # 定時器
         self.timerInsertCheckinData = QTimer(self)
@@ -106,9 +103,8 @@ class MainWindow(QWidget):
         self.devices = self.db.getDevices()
         self.devices = {device['id']: device for device in self.devices}
 
-        # for test
-        # self.printer = QRCodePrinter(self.usbDviceResult.device)
-        # self.printerPapperCheck()
+        self.printer = QRCodePrinter(self.usbDeviceCheck.usbDviceResult.device)
+        self.printerPapperCheck()
 
         for deviceID, deviceInfo in self.devices.items():
             self.ui.deviceCombobox.addItem(deviceInfo['name'], deviceID)
@@ -212,12 +208,18 @@ class MainWindow(QWidget):
                     self.ui.deviceNameLabel.setText("     **  請重新選擇裝置  **")
                     return
                 else :
-                    self.ui.inputLabel.show()
+
+                    self.ui.telLabel.show()
+                    self.ui.telInputLabel.show()
+                    self.ui.cidLabel.show()
+                    self.ui.cidInputLabel.show()
                     self.ui.inputButton.show()
 
                     # 會員bind會員no資料
                     self.getMemberPhoneBindMemberNo = self.db.getMemberPhoneBindMemberNo(self.bindTicket)
 
+                    # 活動圖檔資料
+                    self.ticketBanner = self.getTicketImage(self.bindTicket)
                     if self.offlineValue != 1:
                         # 線上核銷
                         offlineSelected = '線上核銷'
@@ -256,8 +258,8 @@ class MainWindow(QWidget):
         self.ui.memberLabel.setText("會員")
         self.ui.memberNameLabel.setText(member['name'])
 
-        uniqueTicketIDs = set()
-        checkedDatas = []
+        uniqueTicketIDs = []
+        rePrintTicketIDs = []
 
         for res in member['ticketData']:
             ticketID = res.get('ticket_id')
@@ -274,42 +276,36 @@ class MainWindow(QWidget):
                 }
                 self.db.insertMemberCheckIn(insertFields)
 
-                if ticketID is not None:
-                    uniqueTicketIDs.add(ticketID)
-                    ticketID = ','.join(map(str, uniqueTicketIDs))
+                uniqueTicketIDs.append(ticketID)
             else:
-                rePrintData = {
-                    'ticketID': ticketID,
-                    'member': member,
-                }
-                checkedDatas.append(rePrintData)
+                rePrintTicketIDs.append(ticketID)
                 ticketID = '' # 清空票券
 
-        if checkedDatas:
+        if len(rePrintTicketIDs) > 0:
+            checkedDatas = {'member': member, 'ticketID' : rePrintTicketIDs}
             self.customMsgBox.show("Warning", f"會員 : {member['name']} - 已核銷入場，是否需要重印票券?", checkedDatas)
+            return
 
-        # # 取得活動票券圖檔，目前採活動banner
-        if ticketID != '':
-            imageUrls = self.onlinReformImageData(ticketID)
-            if imageUrls:
-                # for test
-                # if (self.printerPapperCheck()):
-                #     self.printer.printTickets('online', member, imageUrls) # 列印票券
-                print(imageUrls)
+        # 取得活動票券圖檔
+        if len(uniqueTicketIDs) > 0:
+            outPutData = self.refactorImageData(uniqueTicketIDs)
+            if outPutData and self.printerPapperCheck():
+                # self.printer.printTickets('offline', member, outPutData) # 列印票券
+                print("P!")
 
     def offlineReimburse(self, scanResult):
         # 離線核銷
         if self.bindTicket == '':
             self.customMsgBox.show("Error", "請先綁定活動資料再使用。")
-            return
+            return 
 
         memberList = self.members.get(scanResult, [])
 
         if len(memberList) != 0:
-            imageUrls = None
             ticketID = set()
             if memberList['member_id'] in self.offlineCheckedMember:
-                self.customMsgBox.show("Warning", f"會員 : {memberList['name']} - 已核銷入場，是否需要重印票券?", memberList)
+                self.customMsgBox.show('Warning', f"會員 : {memberList['name']} - 已核銷入場，是否需要重印票券?", memberList)
+                return
             else:
                 self.offlineCheckedMember.append(memberList['member_id'])
                 for tsID in memberList['ticket_id']: # 每個活動組合
@@ -317,47 +313,44 @@ class MainWindow(QWidget):
                         if value['ticket_sign_id'] not in self.offlineCheckinData['ticketSignID']:
                             self.offlineCheckinData['ticketSignID'].append(value['ticket_sign_id'])
                             ticketID.add(key)
-                imageUrls = self.offlineReformImageData(ticketID)
+                outPutData = self.refactorImageData(ticketID)
 
-            if imageUrls:
-                # for test
-                # if (self.printerPapperCheck()):
-                #     self.printer.printTickets('offline', memberList, imageUrls) # 列印票券
-                    print(imageUrls)
+            if self.ticketBanner and self.printerPapperCheck():
+                # self.printer.printTickets('offline',  memberList, outPutData) # 列印票券
+                print("P!")
         else:
             self.customMsgBox.show("Warning", "查無該會員資料!")
 
-    def onlinReformImageData(self, ticketID):
-        # 取得併重整圖檔資料
-        imageData = self.db.getTicketBannerByID(ticketID)
-        targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
-
-        if imageData:
-            urls = [f"{targetUrl}{data['exhibit_id']}/{data['image_pos']}" for data in imageData]        
-            return urls
-        return False
-    
-    def offlineReformImageData(self, ticketID):
+    def refactorImageData(self, ticketID):
         # 離線活動Banner圖檔重整
         matchingData = []
-        for info in self.ticketBanner:
-            if info['id'] in ticketID:
-                matchingData.append(info['pilImage'])
+        for t in self.ticketBanner:
+            if t['id'] in ticketID:
+                matchingData.append(t['pilImage'])
         return matchingData 
 
-    def offlineGetImage(self, ticketID):
+    def getTicketImage(self, ticketID):
         # 離線活動圖檔下載
         imageData = self.db.getTicketBannerByID(ticketID)
-        targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
-
+        result = []
+        
         for data in imageData:
-            if data.get('image_pos') != '':
-                # for test
-                # pilImage = self.printer.downloadImages(f"{targetUrl}{data['exhibit_id']}/{data['image_pos']}")   
-                pilImage = '' # for test
-                data['pilImage'] = pilImage
+            tmp = []
+            pilImage1 = ''
+            pilImage2 = ''
 
-        return imageData
+            if data.get('pos_image1') != '':
+                pilImage1 = self.printer.downloadImages(f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image1']}")
+            tmp.append({'image':pilImage1,'text':data['pos_text1'], 'fontSize': data['pos_font_size1']})
+
+            if data.get('pos_image2') != '':
+                pilImage2 = self.printer.downloadImages(f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image2']}")
+            
+            if data.get('pos_image2') != '' and data.get('pos_text2') != '':
+                tmp.append({'image':pilImage2,'text':data['pos_text2'], 'fontSize':data['pos_font_size2']})
+
+            result.append({'id':data['id'],'pilImage':tmp})
+        return result
 
     def insertCheckinData(self):
         # 定時插入核銷資料
@@ -422,11 +415,8 @@ class MainWindow(QWidget):
 
             # 報名會員資料
             self.members = self.db.getMemberSignTicketByTicketID(self.bindTicket)
-            # 活動圖檔資料
-            self.ticketBanner = self.offlineGetImage(self.bindTicket)
             # 會員登記入場資料
             self.offlineCheckedMember = self.db.getMemberCheckIn(self.bindTicket)
-
             # 離線核銷資料
             self.offlineCheckinData['deviceID'] = self.devices.get(data['selectedDeviceID'])['id']
             self.offlineCheckinData['deviceName'] = data['deviceName']
@@ -437,21 +427,34 @@ class MainWindow(QWidget):
 
             # 定時器, 寫入核銷更新
             if not self.timerInsertCheckinData.isActive():
-                self.timerInsertCheckinData.start(5 * 1000)
+                self.timerInsertCheckinData.start(6 * 1000)
         except Exception as e:
+            traceback_str = traceback.format_exc()
+            print(traceback_str)
             self.customMsgBox.show("Warning", e)
             return False
 
     def onInputButtonClicked(self):
         # 判斷核銷方式
-        phone_number = self.ui.inputLabel.text()
-        memberNo = self.getMemberPhoneBindMemberNo.get(phone_number)
+        phoneNumber = self.ui.telInputLabel.text()
+        cidNumber = self.ui.cidInputLabel.text()
 
-        if not memberNo:
-            self.customMsgBox.show("Error", "查無此號碼資料。")
+        self.ui.telInputLabel.clear()
+        self.ui.cidInputLabel.clear()
+        if phoneNumber == '' or cidNumber == '' or len(phoneNumber) != 10 or len(cidNumber) != 6:
+            self.customMsgBox.show("Warning", "請輸入手機號碼及身分證後六碼。")
             return
+        else :
+            memberNo = self.getMemberPhoneBindMemberNo.get(phoneNumber)
 
-        if self.offlineValue:
-            self.offlineReimburse(memberNo)
-        else:
-            self.onlineReimburse(memberNo)
+            if not memberNo:
+                self.customMsgBox.show("Error", "查無此號碼資料。")
+                return
+            if memberNo['cid'] != cidNumber:
+                self.customMsgBox.show("Warning", "身分證不正確。")
+                return
+
+            if self.offlineValue:
+                self.offlineReimburse(memberNo['member_no'])
+            else:
+                self.onlineReimburse(memberNo['member_no'])

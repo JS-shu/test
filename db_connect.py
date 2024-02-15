@@ -1,4 +1,4 @@
-import pymysql
+import pymysql, traceback
 from collections import defaultdict
 from configparser import ConfigParser
 from datetime import datetime
@@ -24,7 +24,7 @@ class db_connect:
             )
         except Exception as e:
             print(f"Error: {e}")
-            self.customMsgBox.show("資料庫連線失敗", "資料庫連線失敗", "error")
+            self.customMsgBox.show('Warning',"資料庫連線失敗")
             return False
 
     def read_config(self):
@@ -38,7 +38,7 @@ class db_connect:
             self.database = config.get('database', 'database')
         except Exception as e:
             print(f"Error: {e}")
-            self.customMsgBox("讀取設定檔失敗", "讀取設定檔失敗", "error")
+            self.customMsgBox.show('Warning',"讀取設定檔失敗")
 
     def disconnect(self):
         try:
@@ -46,7 +46,7 @@ class db_connect:
                 self.connection.close()
         except Exception as e:
             print(f"Error: {e}")
-            self.customMsgBox("資料庫斷線失敗", "資料庫斷線失敗", "error")
+            self.customMsgBox.show('Warning',"資料庫斷線失敗")
 
     def getDevices(self):
         # 取得活動核銷綁定裝置
@@ -59,7 +59,7 @@ class db_connect:
                 return devices
         except Exception as e:
             print(f"Error: {e}")
-            self.customMsgBox("取得裝置失敗", "取得裝置失敗", "error")
+            self.customMsgBox.show('Warning',"取得裝置失敗")
 
     def getMemberTicketSignData(self, data):
         # 取得會員資料
@@ -71,6 +71,8 @@ class db_connect:
                 
                 result = defaultdict(lambda: {'name': '', 'ticketData': []})
 
+                if not data :
+                    return False
                 for item in data:
                     name = item['name']
                     ticket_data = {'id': item['id'], 'ticket_id': item['ticket_id']}
@@ -80,8 +82,9 @@ class db_connect:
                 result_list = list(result.values())[0]
                 return result_list
         except Exception as e:
-            print(f"Error: {e}")
-            self.customMsgBox("取得會員資料失敗", "取得會員資料失敗", "error")
+            traceback_str = traceback.format_exc()
+            print(f"An exception occurred: {e} \n Traceback: {traceback_str}")
+            self.customMsgBox.show('Warning',"取得會員資料失敗")
 
     def getMemberSignTicketByTicketID(self, ticketID):
         # 根據核銷裝置綁定的ticketID取得已登記參與活動的會員
@@ -118,13 +121,13 @@ class db_connect:
         # 取得活動Banner，作為票券列印使用
         try:
             with self.connection.cursor() as cursor:
-                sql = f"SELECT id, exhibit_id, image_pos FROM new_ticket WHERE id IN ({ticketID})";
+                sql = f"SELECT t.id AS id, t.exhibit_id AS exhibit_id, pd.pos_image1 AS pos_image1, pd.pos_image2 AS pos_image2, pd.pos_text1 AS pos_text1, pd.pos_text2 AS pos_text2, pd.pos_font_size1 AS pos_font_size1, pd.pos_font_size2 AS pos_font_size2 FROM new_ticket t LEFT JOIN new_ticket_pos_data AS pd ON t.id = pd.ticket_id WHERE t.id IN ({ticketID})";
                 cursor.execute(sql)
-                memberInTicketSign = cursor.fetchall()
-
-                return memberInTicketSign
+                data = cursor.fetchall()
+                return data
         except Exception as e:
-            print(f"Error: {e}")
+            traceback_str = traceback.format_exc()
+            print(f"An exception occurred: {e} \n Traceback: {traceback_str}")
 
     def getTicketByID(self, ticketID):
         # 取得活動
@@ -188,11 +191,13 @@ class db_connect:
         # 根據核銷裝置綁定的ticketID取得已登記參與活動的會員
         try:
             with self.connection.cursor() as cursor:
-                sql = f"SELECT m.phone_number AS phone_number, m.no AS member_no FROM new_ticket_sign s LEFT JOIN new_member AS m on s.member_id = m.id WHERE ticket_id in ({ticketID}) GROUP BY member_no";
+                sql = f"SELECT m.phone_number AS phone_number, m.no AS member_no, m.cid AS cid FROM new_ticket_sign s LEFT JOIN new_member AS m on s.member_id = m.id WHERE ticket_id in ({ticketID}) GROUP BY member_no";
                 cursor.execute(sql)
                 data = cursor.fetchall()
 
-                result = {item['phone_number']: item['member_no'] for item in data}
+                # result = {item['phone_number']: item['member_no'] for item in data}
+
+                result = {item['phone_number']: {'member_no':item['member_no'], 'cid':item['cid']} for item in data}
                 return result
         except Exception as e:
             print(f"Error: {e}")

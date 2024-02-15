@@ -12,17 +12,18 @@ class QRCodePrinter:
         status = self.ser.paper_status()
         return status
 
-    def printTickets(self, mode, member=False, urls=[]):
-        for url in urls:
+    def printTickets(self, mode, member=False, datas=[]):
+        for data in datas:
             if member :
                 self.printMember(member)
             if mode == 'online':
-                self.printQrCodeOnline(url)
+                self.printQrCodeOnline(data)
             else:
-                self.printQrCodeOffline(url)
+                self.printQrCodeOffline(data)
 
     def printMember(self, member):
-        self.ser._raw(f"會員: {member['name']}\n".encode('big5'))
+        self.ser.set_with_default(align="left", font='a', width=1, height=1, custom_size=1)
+        self.ser._raw(f"會員: {member['name']}\n\n".encode('big5'))
 
     def printQrCodeOnline(self, url):
         # 下載 QR 碼圖片
@@ -67,6 +68,14 @@ class QRCodePrinter:
 
             return new_img
 
-    def printQrCodeOffline(self, image):
-        self.ser.image(image)
-        self.ser.cut(mode='PART')
+    def printQrCodeOffline(self, data):
+        for d in data:
+            if d['image'] != '':
+                self.ser.image(d['image'], center=True)
+            self.ser.set_with_default(align="center",width=d['fontSize'], height=d['fontSize'], custom_size=d['fontSize'])
+
+            if d['text'] != '':
+                self.ser._raw('\n'.encode('big5'))
+                self.ser._raw(f"{d['text']}\n".encode('big5'))
+
+            self.ser.cut(mode='PART')
