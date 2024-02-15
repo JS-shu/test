@@ -57,7 +57,7 @@ class MainWindow(QWidget):
 
         # USB設備連線檢查
         self.usbDeviceCheck = UsbDeviceCheck(self)
-        self.usbDeviceCheck.checkUsbLink()
+        # self.usbDeviceCheck.checkUsbLink()
 
         # 讀取綁定裝置資料
         self.deviceInit()
@@ -103,8 +103,8 @@ class MainWindow(QWidget):
         self.devices = self.db.getDevices()
         self.devices = {device['id']: device for device in self.devices}
 
-        self.printer = QRCodePrinter(self.usbDeviceCheck.usbDviceResult.device)
-        self.printerPapperCheck()
+        # self.printer = QRCodePrinter(self.usbDeviceCheck.usbDviceResult.device)
+        # self.printerPapperCheck()
 
         for deviceID, deviceInfo in self.devices.items():
             self.ui.deviceCombobox.addItem(deviceInfo['name'], deviceID)
@@ -289,7 +289,8 @@ class MainWindow(QWidget):
         # 取得活動票券圖檔
         if len(uniqueTicketIDs) > 0:
             outPutData = self.refactorImageData(uniqueTicketIDs)
-            if outPutData and self.printerPapperCheck():
+            if outPutData:
+            # if outPutData and self.printerPapperCheck():
                 # self.printer.printTickets('offline', member, outPutData) # 列印票券
                 print("P!")
 
@@ -315,7 +316,8 @@ class MainWindow(QWidget):
                             ticketID.add(key)
                 outPutData = self.refactorImageData(ticketID)
 
-            if self.ticketBanner and self.printerPapperCheck():
+            if self.ticketBanner:
+            # if self.ticketBanner and self.printerPapperCheck():
                 # self.printer.printTickets('offline',  memberList, outPutData) # 列印票券
                 print("P!")
         else:
@@ -340,11 +342,13 @@ class MainWindow(QWidget):
             pilImage2 = ''
 
             if data.get('pos_image1') != '':
-                pilImage1 = self.printer.downloadImages(f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image1']}")
+                # pilImage1 = self.printer.downloadImages(f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image1']}")
+                pilImage1 = f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image1']}"
             tmp.append({'image':pilImage1,'text':data['pos_text1'], 'fontSize': data['pos_font_size1']})
 
             if data.get('pos_image2') != '':
-                pilImage2 = self.printer.downloadImages(f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image2']}")
+                # pilImage2 = self.printer.downloadImages(f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image2']}")
+                pilImage2 = f"{self.targetUrl}{data['exhibit_id']}/{data['pos_image2']}"
             
             if data.get('pos_image2') != '' and data.get('pos_text2') != '':
                 tmp.append({'image':pilImage2,'text':data['pos_text2'], 'fontSize':data['pos_font_size2']})
