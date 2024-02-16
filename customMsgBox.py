@@ -89,7 +89,7 @@ class CustomMsgBox:
                             ticketIDs = [list(ticket.keys())[0] for ticket in checkTicketID]
                             imageDatas = self.parent.refactorImageData(ticketIDs)
                         if imageDatas:
-                            if (self.parent.printerPapperCheck()):
+                            # if (self.parent.printerPapperCheck()):
                                 # self.parent.printer.printTickets('offline', checkedDatas, imageDatas) # 列印票券
                                 print("P!")
                     else :
@@ -97,8 +97,10 @@ class CustomMsgBox:
 
                         # 線上
                         if imageDatas:
-                            if (self.parent.printerPapperCheck()):
+                            # if (self.parent.printerPapperCheck()):
                                 # self.parent.printer.printTickets('offline', checkedDatas['member'], imageDatas) # 列印票券
+                                print(imageDatas)
+                                print(checkedDatas['member'])
                                 print("P!")
             else:
                 self.show("Warning", "設備碼錯誤!")
