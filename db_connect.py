@@ -65,7 +65,7 @@ class db_connect:
         # 取得會員資料
         try:
             with self.connection.cursor() as cursor:
-                sql = f"SELECT m.name, s.id AS id, s.ticket_id AS ticket_id FROM new_ticket_sign AS s LEFT JOIN new_member AS m ON s.member_id = m.id WHERE m.no = {data['no']} AND ticket_id IN ({data['ticketID']})";
+                sql = f"SELECT m.name, s.id AS id, s.ticket_id AS ticket_id, t.checkin_num AS checkin_num, t.checkin_num_limit_day AS checkin_num_limit_day FROM new_ticket_sign AS s LEFT JOIN new_member AS m ON s.member_id = m.id LEFT JOIN new_ticket AS t ON t.id = s.ticket_id WHERE m.no = {data['no']} AND ticket_id IN ({data['ticketID']})";
                 cursor.execute(sql)
                 data = cursor.fetchall()
                 
@@ -75,7 +75,7 @@ class db_connect:
                     return False
                 for item in data:
                     name = item['name']
-                    ticket_data = {'id': item['id'], 'ticket_id': item['ticket_id']}
+                    ticket_data = {'id': item['id'], 'ticket_id': item['ticket_id'], 'checkin_num': item['checkin_num'], 'checkin_num_limit_day': item['checkin_num_limit_day']}
                     result[name]['name'] = name
                     result[name]['ticketData'].append(ticket_data)
 
@@ -115,7 +115,8 @@ class db_connect:
                         result_dict[member_no]['ticket_id'].append(ticket_dict)
                 return result_dict
         except Exception as e:
-            print(f"Error: {e}")
+            traceback_str = traceback.format_exc()
+            print(f"An exception occurred: {e} \n Traceback: {traceback_str}")
 
     def getTicketBannerByID(self, ticketID):
         # 取得活動Banner，作為票券列印使用
@@ -129,17 +130,17 @@ class db_connect:
             traceback_str = traceback.format_exc()
             print(f"An exception occurred: {e} \n Traceback: {traceback_str}")
 
-    def getTicketByID(self, ticketID):
-        # 取得活動
-        try:
-            with self.connection.cursor() as cursor:
-                sql = f"SELECT id, name FROM new_ticket WHERE id ={ticketID}";
-                cursor.execute(sql)
-                ticket = cursor.fetchone()
+    # def getTicketByID(self, ticketID):
+    #     # 取得活動
+    #     try:
+    #         with self.connection.cursor() as cursor:
+    #             sql = f"SELECT id, name FROM new_ticket WHERE id ={ticketID}";
+    #             cursor.execute(sql)
+    #             ticket = cursor.fetchone()
 
-                return ticket
-        except Exception as e:
-            print(f"Error: {e}")
+    #             return ticket
+    #     except Exception as e:
+    #         print(f"Error: {e}")
 
     def insertMemberCheckIn(self, datas):
         # 寫入報名資料
@@ -159,13 +160,18 @@ class db_connect:
         except Exception as e:
             print(f"Error: {e}")
 
-    def memberCheckIn(self, ticketSignId):
+    def memberCheckIn(self, params):
         # 檢查報名資料是否已存在
+        ticketSignID = params.get('ticketSignID', 0)
+        date = params.get('date', '')
         try:
             with self.connection.cursor() as cursor:
-                sql = f"SELECT id FROM new_ticket_checkin WHERE ticket_sign_id = {ticketSignId}"
+                if date != '':
+                    sql = f"SELECT id FROM new_ticket_checkin WHERE ticket_sign_id = {ticketSignID} AND DATE(create_at) = '{date}'"
+                else:
+                    sql = f"SELECT id FROM new_ticket_checkin WHERE ticket_sign_id = {ticketSignID}"
                 cursor.execute(sql)
-                checkin = cursor.fetchone()
+                checkin = cursor.fetchall()
 
                 return checkin
         except Exception as e:
