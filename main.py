@@ -18,8 +18,11 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
+        # 預載圖檔
         self.ticketBanner = None
-
+        # Y-m-d 格式日期
+        self.todayDate = datetime.today().strftime('%Y-%m-%d')
+        # 圖檔下載目標URL
         self.targetUrl = "https://dykt84bvm7etr.cloudfront.net/uploadfiles/"
         # 離線核銷會員紀錄
         self.offlineCheckedMember = []
@@ -264,34 +267,78 @@ class MainWindow(QWidget):
         for res in member['ticketData']:
             ticketID = res.get('ticket_id')
             ticketSignID = res.get('id')
+            checkinNum = res.get('checkin_num')
+            checkinNumLimitDay = res.get('checkin_num_limit_day')
 
-            checkinRes = self.memberCheckIn(ticketSignID)
-            if not checkinRes:
-                insertFields = {
-                    'type':0,
-                    'deviceId': self.selectedDevice.get('id'),
-                    'ticketSignId': ticketSignID,
-                    'gateNo': self.selectedDevice.get('name'),
-                    'comment': '票機線上核銷'
-                }
-                self.db.insertMemberCheckIn(insertFields)
+            params = {'ticketSignID': ticketSignID}
 
-                uniqueTicketIDs.append(ticketID)
+            if checkinNum == 1 :
+                checkinRes = self.memberCheckIn(params)
+                if not checkinRes:
+                    insertFields = {
+                        'type':0,
+                        'deviceId': self.selectedDevice.get('id'),
+                        'ticketSignId': ticketSignID,
+                        'gateNo': self.selectedDevice.get('name'),
+                        'comment': '票機線上核銷'
+                    }
+                    self.db.insertMemberCheckIn(insertFields)
+                    uniqueTicketIDs.append(ticketID)
+                else:
+                    rePrintTicketIDs.append(ticketID)
             else:
-                rePrintTicketIDs.append(ticketID)
-                ticketID = '' # 清空票券
+                # 檢查是否有每天入場一次條件
+                if checkinNumLimitDay == 1:
+                    params = {'ticketSignID': ticketSignID, "date": self.todayDate}
+                    checkinByDayRes = self.memberCheckIn(params)
 
-        if len(rePrintTicketIDs) > 0:
-            checkedDatas = {'member': member, 'ticketID' : rePrintTicketIDs}
-            self.customMsgBox.show("Warning", f"會員 : {member['name']} - 已核銷入場，是否需要重印票券?", checkedDatas)
-            return
+                    if not checkinByDayRes:
+                        insertFields = {
+                            'type':0,
+                            'deviceId': self.selectedDevice.get('id'),
+                            'ticketSignId': ticketSignID,
+                            'gateNo': self.selectedDevice.get('name'),
+                            'comment': '票機線上核銷'
+                        }
+                        self.db.insertMemberCheckIn(insertFields)
+                        uniqueTicketIDs.append(ticketID)
+                    else:
+                        rePrintTicketIDs.append(ticketID)
+                else:
+                    checkinRes = self.memberCheckIn(params)
+                    if checkinRes is None:
+                        insertFields = {
+                            'type':0,
+                            'deviceId': self.selectedDevice.get('id'),
+                            'ticketSignId': ticketSignID,
+                            'gateNo': self.selectedDevice.get('name'),
+                            'comment': '票機線上核銷'
+                        }
+                        self.db.insertMemberCheckIn(insertFields)
+                        uniqueTicketIDs.append(ticketID)
+                    elif len(checkinRes) < checkinNum:
+                        insertFields = {
+                            'type':0,
+                            'deviceId': self.selectedDevice.get('id'),
+                            'ticketSignId': ticketSignID,
+                            'gateNo': self.selectedDevice.get('name'),
+                            'comment': '票機線上核銷'
+                        }
+                        self.db.insertMemberCheckIn(insertFields)
+                        uniqueTicketIDs.append(ticketID)
+                    else:
+                        rePrintTicketIDs.append(ticketID)
 
         # 取得活動票券圖檔
         if len(uniqueTicketIDs) > 0:
             outPutData = self.refactorImageData(uniqueTicketIDs)
             if outPutData and self.printerPapperCheck():
                 self.printer.printTickets('offline', member, outPutData) # 列印票券
-                # print("P!")
+
+        if len(rePrintTicketIDs) > 0:
+            checkedDatas = {'member': {'name':member['name']}, 'ticketID' : rePrintTicketIDs}
+            self.customMsgBox.show("Warning", f"會員 : {member['name']} - 已核銷入場，是否需要重印票券?", checkedDatas)
+            return
 
     def offlineReimburse(self, scanResult):
         # 離線核銷
@@ -299,26 +346,52 @@ class MainWindow(QWidget):
             self.customMsgBox.show("Error", "請先綁定活動資料再使用。")
             return 
 
-        memberList = self.members.get(scanResult, [])
+        memberData = self.members.get(scanResult, [])
 
-        if len(memberList) != 0:
-            ticketID = set()
-            if memberList['member_id'] in self.offlineCheckedMember:
-                self.customMsgBox.show('Warning', f"會員 : {memberList['name']} - 已核銷入場，是否需要重印票券?", memberList)
+        if len(memberData) != 0 :
+            ticketPrintID = set()
+            rePrintTicketIDs = []
+
+            for ticketID  in memberData['ticket_id']:
+                details = memberData["ticket_id"][ticketID]
+                if details['checkin_num'] == 1:
+                    if len(details['checkin_log']) == 0:
+                        self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
+                        ticketPrintID.add(ticketID)
+                    else:
+                        rePrintTicketIDs.append(ticketID)
+                else:
+                    # 檢查入場條件
+                    if details['checkin_num_limit_day'] == 1:
+                        if len(details['checkin_log']) == 0:
+                            self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
+                            ticketPrintID.add(ticketID)
+                        else:
+                            for checkin_log in details['checkin_log']:
+                                if checkin_log['ticket_checkin_at'] != self.todayDate:
+                                    self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
+                                    ticketPrintID.add(ticketID)
+                                else:
+                                    rePrintTicketIDs.append(ticketID)
+                    else:
+                        if len(details['checkin_log']) == 0:
+                            self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
+                            ticketPrintID.add(ticketID)
+                        elif len(details['checkin_log']) < details['checkin_num']:
+                            self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
+                            ticketPrintID.add(ticketID)
+                        else:
+                            rePrintTicketIDs.append(ticketID)
+
+            if len(ticketPrintID) > 0 :
+                outPutData = self.refactorImageData(ticketPrintID)
+                if outPutData and self.printerPapperCheck():
+                    self.printer.printTickets('offline',  memberData, outPutData) # 列印票券
+
+            if len(rePrintTicketIDs) > 0:
+                checkedDatas = {'member': {'name':memberData['name']}, 'ticketID': rePrintTicketIDs}
+                self.customMsgBox.show("Warning", f"會員 : {memberData['name']} - 已核銷入場，是否需要重印票券?", checkedDatas)
                 return
-            else:
-                self.offlineCheckedMember.append(memberList['member_id'])
-                for tsID in memberList['ticket_id']: # 每個活動組合
-                    for key, value in tsID.items():
-                        if value['ticket_sign_id'] not in self.offlineCheckinData['ticketSignID']:
-                            self.offlineCheckinData['ticketSignID'].append(value['ticket_sign_id'])
-                            ticketID.add(key)
-                outPutData = self.refactorImageData(ticketID)
-
-            if self.ticketBanner and self.printerPapperCheck():
-                self.printer.printTickets('offline',  memberList, outPutData) # 列印票券
-                # print(outPutData)
-                # print("P!")
         else:
             self.customMsgBox.show("Warning", "查無該會員資料!")
 
@@ -362,22 +435,15 @@ class MainWindow(QWidget):
             else :
                 if self.offlineCheckinData and self.offlineCheckinData['ticketSignID'] != []: 
                     for ticketSignID in self.offlineCheckinData['ticketSignID']:
-                        # 活動核銷
-                        checkinRes = self.memberCheckIn(ticketSignID)
-
-                        if not checkinRes:
-                            insertFields = {
-                                'type':0,
-                                'deviceId': self.selectedDevice.get('id'),
-                                'ticketSignId': ticketSignID,
-                                'gateNo': self.selectedDevice.get('name'),
-                                'comment': '票機離線核銷'
-                            }
-                            self.offlineCheckInRow += int(self.db.insertMemberCheckIn(insertFields))
-                        else :
-                            # print(f"remove - {ticketSignID}")
-                            self.offlineCheckinData['ticketSignID'].remove(ticketSignID)
-                    
+                        insertFields = {
+                            'type':0,
+                            'deviceId': self.selectedDevice.get('id'),
+                            'ticketSignId': ticketSignID,
+                            'gateNo': self.selectedDevice.get('name'),
+                            'comment': '票機離線核銷'
+                        }
+                        self.offlineCheckInRow += int(self.db.insertMemberCheckIn(insertFields))
+                        self.offlineCheckinData['ticketSignID'].remove(ticketSignID)
                     # 顯示更新筆數與最後更新時間
                     self.ui.offlineTitleInfoLabel.setText("離線核銷")
                     self.ui.offlineInfoLabel.setText(f"已累計核銷筆數 『{self.offlineCheckInRow}』\n最後核銷時間 『{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}』")

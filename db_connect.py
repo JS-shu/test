@@ -65,7 +65,7 @@ class db_connect:
         # 取得會員資料
         try:
             with self.connection.cursor() as cursor:
-                sql = f"SELECT m.name, s.id AS id, s.ticket_id AS ticket_id FROM new_ticket_sign AS s LEFT JOIN new_member AS m ON s.member_id = m.id WHERE m.no = {data['no']} AND ticket_id IN ({data['ticketID']})";
+                sql = f"SELECT m.name, s.id AS id, s.ticket_id AS ticket_id, t.checkin_num AS checkin_num, t.checkin_num_limit_day AS checkin_num_limit_day FROM new_ticket_sign AS s LEFT JOIN new_member AS m ON s.member_id = m.id LEFT JOIN new_ticket AS t ON t.id = s.ticket_id WHERE m.no = {data['no']} AND ticket_id IN ({data['ticketID']})";
                 cursor.execute(sql)
                 data = cursor.fetchall()
                 
@@ -75,7 +75,7 @@ class db_connect:
                     return False
                 for item in data:
                     name = item['name']
-                    ticket_data = {'id': item['id'], 'ticket_id': item['ticket_id']}
+                    ticket_data = {'id': item['id'], 'ticket_id': item['ticket_id'], 'checkin_num': item['checkin_num'], 'checkin_num_limit_day': item['checkin_num_limit_day']}
                     result[name]['name'] = name
                     result[name]['ticketData'].append(ticket_data)
 
@@ -90,32 +90,38 @@ class db_connect:
         # 根據核銷裝置綁定的ticketID取得已登記參與活動的會員
         try:
             with self.connection.cursor() as cursor:
-                sql = f"SELECT s.member_id,s.id, s.name, s.ticket_id, m.no AS member_no FROM new_ticket_sign AS s LEFT JOIN new_member AS m on s.member_id = m.id WHERE ticket_id in ({ticketID})";
+                sql = f"SELECT s.member_id,s.id, s.name, s.ticket_id, m.no AS member_no, t.checkin_num AS checkin_num, t.checkin_num_limit_day AS checkin_num_limit_day, c.id AS ticket_checkin_id, DATE_FORMAT(c.checkin_at, '%Y-%m-%d') AS ticket_checkin_at FROM new_ticket_sign AS s LEFT JOIN new_member AS m on s.member_id = m.id LEFT JOIN new_ticket AS t on t.id = s.ticket_id LEFT JOIN new_ticket_checkin AS c on c.ticket_sign_id = s.id WHERE ticket_id in ({ticketID})";
                 cursor.execute(sql)
-                members = cursor.fetchall()
-                result_dict = defaultdict(list)
+                datas = cursor.fetchall()
+                result = {}
+                for item in datas:
+                    member_no = str(item['member_no'])
+                    if member_no not in result:
+                        result[member_no] = {
+                            "member_id": item['member_id'],
+                            "name": item['name'],
+                            "ticket_id": {}
+                        }
 
-                for member in members:
-                    member_no = member.get('member_no')
+                    ticket_id = item['ticket_id']
+                    if ticket_id not in result[member_no]['ticket_id']:
+                        result[member_no]['ticket_id'][ticket_id] = {
+                            "ticket_sign_id": item['id'],
+                            "checkin_num": item['checkin_num'],
+                            "checkin_num_limit_day": item['checkin_num_limit_day'],
+                            "checkin_log": []
+                        }
 
-                    if not member_no:
-                        continue
+                    if item['ticket_checkin_id'] != None and item['ticket_checkin_at'] != None:
+                        result[member_no]['ticket_id'][ticket_id]['checkin_log'].append({
+                            "ticket_checkin_id": item['ticket_checkin_id'],
+                            "ticket_checkin_at": item['ticket_checkin_at']
+                        })
 
-                    if member_no not in result_dict:
-                        result_dict[member_no] = {'member_id':member.get('member_id'),'name': member.get('name', ''), 'ticket_id': []}
-
-                        ticket_id = member.get('ticket_id')
-                        ticket_sign_id = member.get('id', '')
-                        ticket_dict = {ticket_id: {'ticket_sign_id': ticket_sign_id}}
-                        result_dict[member_no]['ticket_id'].append(ticket_dict)
-                    else :
-                        ticket_id = member.get('ticket_id')
-                        ticket_sign_id = member.get('id', '')
-                        ticket_dict = {ticket_id: {'ticket_sign_id': ticket_sign_id}}
-                        result_dict[member_no]['ticket_id'].append(ticket_dict)
-                return result_dict
+                return result
         except Exception as e:
-            print(f"Error: {e}")
+            traceback_str = traceback.format_exc()
+            print(f"An exception occurred: {e} \n Traceback: {traceback_str}")
 
     def getTicketBannerByID(self, ticketID):
         # 取得活動Banner，作為票券列印使用
@@ -128,18 +134,6 @@ class db_connect:
         except Exception as e:
             traceback_str = traceback.format_exc()
             print(f"An exception occurred: {e} \n Traceback: {traceback_str}")
-
-    def getTicketByID(self, ticketID):
-        # 取得活動
-        try:
-            with self.connection.cursor() as cursor:
-                sql = f"SELECT id, name FROM new_ticket WHERE id ={ticketID}";
-                cursor.execute(sql)
-                ticket = cursor.fetchone()
-
-                return ticket
-        except Exception as e:
-            print(f"Error: {e}")
 
     def insertMemberCheckIn(self, datas):
         # 寫入報名資料
@@ -159,13 +153,18 @@ class db_connect:
         except Exception as e:
             print(f"Error: {e}")
 
-    def memberCheckIn(self, ticketSignId):
+    def memberCheckIn(self, params):
         # 檢查報名資料是否已存在
+        ticketSignID = params.get('ticketSignID', 0)
+        date = params.get('date', '')
         try:
             with self.connection.cursor() as cursor:
-                sql = f"SELECT id FROM new_ticket_checkin WHERE ticket_sign_id = {ticketSignId}"
+                if date != '':
+                    sql = f"SELECT id FROM new_ticket_checkin WHERE ticket_sign_id = {ticketSignID} AND DATE(create_at) = '{date}'"
+                else:
+                    sql = f"SELECT id FROM new_ticket_checkin WHERE ticket_sign_id = {ticketSignID}"
                 cursor.execute(sql)
-                checkin = cursor.fetchone()
+                checkin = cursor.fetchall()
 
                 return checkin
         except Exception as e:

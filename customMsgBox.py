@@ -82,24 +82,10 @@ class CustomMsgBox:
 
             if (deviceKey == self.parent.selectedDevice.get('winpos_key')):
                 if len(checkedDatas) != 0:
-                    if 'member_id' in checkedDatas:
-                        # 離線
-                        checkTicketID = checkedDatas.get('ticket_id', [])
-                        if checkTicketID:
-                            ticketIDs = [list(ticket.keys())[0] for ticket in checkTicketID]
-                            imageDatas = self.parent.refactorImageData(ticketIDs)
-                        if imageDatas:
-                            if (self.parent.printerPapperCheck()):
-                                self.parent.printer.printTickets('offline', checkedDatas, imageDatas) # 列印票券
-                                # print("P!")
-                    else :
-                        imageDatas = self.parent.refactorImageData(checkedDatas['ticketID'])  
-
-                        # 線上
-                        if imageDatas:
-                            if (self.parent.printerPapperCheck()):
-                                self.parent.printer.printTickets('offline', checkedDatas['member'], imageDatas) # 列印票券
-                                # print("P!")
+                    imageDatas = self.parent.refactorImageData(checkedDatas['ticketID'])
+                    if imageDatas:
+                        if (self.parent.printerPapperCheck()):
+                            self.parent.printer.printTickets('offline', checkedDatas['member'], imageDatas) # 列印票券
             else:
                 self.show("Warning", "設備碼錯誤!")
         except Exception as e:
