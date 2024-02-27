@@ -232,6 +232,16 @@ class MainWindow(QWidget):
 
                 self.customMsgBox.show("Information", f"核銷方式: {offlineSelected}\nDevice ID: {selectedDeviceID}\nDevice Name: {deviceName}")
                 self.ui.deviceNameLabel.setText(f"     **  {deviceName}  **")
+
+                self.ui.offlineLabel.hide()
+                self.ui.offlineCombobox.hide()
+
+                self.ui.deviceTitleLabel.hide()
+                self.ui.deviceCombobox.hide()
+                self.ui.deviceNameLabel.hide()
+
+                self.ui.cameraTitleLable.hide()
+                self.ui.cameraCombobox.hide()
             else:
                 self.ui.deviceNameLabel.clear()
         except Exception as e:

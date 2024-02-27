@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QPixmap, QFont
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import QSize,Qt
 from PyQt6.QtWidgets import QLabel, QComboBox, QVBoxLayout, QHBoxLayout, QFormLayout, QGraphicsScene, QGraphicsView, QLineEdit, QPushButton
 
 
@@ -137,11 +137,12 @@ class Ui_MainWindow(object):
             color: #ebdbb2;
         """)
 
-        MainWindow.setWindowTitle("QR Code Scanner")
-        # 起始座標大小
-        MainWindow.setGeometry(100, 100, 1220, 500)
+        MainWindow.setWindowTitle("QR Code Scanner")                             
         
         MainWindow.scene = QGraphicsScene()
         MainWindow.view = QGraphicsView(MainWindow.scene)
-        MainWindow.view.setMinimumSize(QSize(640, 480))
+        MainWindow.view.setMinimumSize(QSize(1280, 720))
+        # self.cameraLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.cameraLabel.setMaximumSize(QSize(1280, 720))
+        self.cameraLabel.setScaledContents(True)
         MainWindow.image_item = MainWindow.scene.addPixmap(QPixmap())
