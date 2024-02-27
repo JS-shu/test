@@ -232,6 +232,16 @@ class MainWindow(QWidget):
 
                 self.customMsgBox.show("Information", f"核銷方式: {offlineSelected}\nDevice ID: {selectedDeviceID}\nDevice Name: {deviceName}")
                 self.ui.deviceNameLabel.setText(f"     **  {deviceName}  **")
+
+                self.ui.offlineLabel.hide()
+                self.ui.offlineCombobox.hide()
+
+                self.ui.deviceTitleLabel.hide()
+                self.ui.deviceCombobox.hide()
+                self.ui.deviceNameLabel.hide()
+
+                self.ui.cameraTitleLable.hide()
+                self.ui.cameraCombobox.hide()
             else:
                 self.ui.deviceNameLabel.clear()
         except Exception as e:
@@ -368,13 +378,14 @@ class MainWindow(QWidget):
                         if len(details['checkin_log']) == 0:
                             self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
                             ticketPrintID.add(ticketID)
+                        elif len(details['checkin_log']) < details['checkin_num']:
+                            daliyCheck = [log for log in details['checkin_log'] if log['ticket_checkin_at'] == self.todayDate]
+                            # 逐筆確認已checkin_log時間
+                            if len(daliyCheck) < 1:
+                                self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
+                                ticketPrintID.add(ticketID)
                         else:
-                            for checkin_log in details['checkin_log']:
-                                if checkin_log['ticket_checkin_at'] != self.todayDate:
-                                    self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
-                                    ticketPrintID.add(ticketID)
-                                else:
-                                    rePrintTicketIDs.append(ticketID)
+                            rePrintTicketIDs.append(ticketID)
                     else:
                         if len(details['checkin_log']) == 0:
                             self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
@@ -384,7 +395,6 @@ class MainWindow(QWidget):
                             ticketPrintID.add(ticketID)
                         else:
                             rePrintTicketIDs.append(ticketID)
-
 
             if len(ticketPrintID) > 0 :
                 outPutData = self.refactorImageData(ticketPrintID)
