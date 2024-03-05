@@ -1,7 +1,6 @@
-import io
+import io, requests
 from escpos.printer import Serial
 from PIL import Image
-import requests
 
 
 class QRCodePrinter:
