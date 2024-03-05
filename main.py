@@ -1,6 +1,6 @@
 import cv2, numpy as np, sys, traceback
 
-from db_connect import db_connect
+from dbConnect import DbConnect
 from datetime import datetime
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QPainterPath
@@ -51,7 +51,7 @@ class MainWindow(QWidget):
         self.customMsgBox = CustomMsgBox(self)
 
         # 資料庫連線
-        self.db = db_connect(self)
+        self.db = bConnect(self)
         self.db.connect()
 
         # 相機裝置檢測

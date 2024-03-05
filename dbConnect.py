@@ -4,7 +4,7 @@ from configparser import ConfigParser
 from datetime import datetime
 
 
-class db_connect:
+class DbConnect:
     def __init__(self, parent,config_file='config.ini'):
         self.parent = parent
         self.customMsgBox = self.parent.customMsgBox
