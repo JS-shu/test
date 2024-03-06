@@ -20,7 +20,7 @@ class Ui_MainWindow(object):
         # 左半部
         # 相機嵌入框畫面
         self.cameraLabel = QLabel('')
-        self.cameraLabel.setStyleSheet("border: 2px dashed #fb4934; border-radius: 10px;")
+        self.cameraLabel.setStyleSheet("border: 2px inset #ebdbb2; border-radius: 5px;")
 
         # 右半部
         # 離線核銷更新資訊
@@ -141,8 +141,8 @@ class Ui_MainWindow(object):
         
         MainWindow.scene = QGraphicsScene()
         MainWindow.view = QGraphicsView(MainWindow.scene)
-        MainWindow.view.setMinimumSize(QSize(1280, 720))
+        MainWindow.view.setMinimumSize(QSize(960, 600))
         # self.cameraLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.cameraLabel.setMaximumSize(QSize(1280, 720))
+        self.cameraLabel.setMaximumSize(QSize(960, 600))
         self.cameraLabel.setScaledContents(True)
         MainWindow.image_item = MainWindow.scene.addPixmap(QPixmap())

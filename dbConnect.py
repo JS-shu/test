@@ -87,10 +87,11 @@ class DbConnect:
             self.customMsgBox.show('Warning',"取得會員資料失敗")
 
     def getMemberSignTicketByTicketID(self, ticketID):
-        # 根據核銷裝置綁定的ticketID取得已登記參與活動的會員
+    # 根據核銷裝置綁定的ticketID取得已登記參與活動的會員
         try:
+            self.connection.begin()
             with self.connection.cursor() as cursor:
-                sql = f"SELECT s.member_id,s.id, s.name, s.ticket_id, m.no AS member_no, t.checkin_num AS checkin_num, t.checkin_num_limit_day AS checkin_num_limit_day, c.id AS ticket_checkin_id, DATE_FORMAT(c.checkin_at, '%Y-%m-%d') AS ticket_checkin_at FROM new_ticket_sign AS s LEFT JOIN new_member AS m on s.member_id = m.id LEFT JOIN new_ticket AS t on t.id = s.ticket_id LEFT JOIN new_ticket_checkin AS c on c.ticket_sign_id = s.id WHERE ticket_id in ({ticketID})";
+                sql = f"SELECT s.member_id,s.id, s.name, s.ticket_id, m.no AS member_no, t.checkin_num AS checkin_num, t.checkin_num_limit_day AS checkin_num_limit_day, c.id AS ticket_checkin_id, DATE_FORMAT(c.checkin_at, '%Y-%m-%d') AS ticket_checkin_at FROM new_ticket_sign AS s LEFT JOIN new_member AS m on s.member_id = m.id LEFT JOIN new_ticket AS t on t.id = s.ticket_id LEFT JOIN new_ticket_checkin AS c on c.ticket_sign_id = s.id WHERE ticket_id in ({ticketID})"
                 cursor.execute(sql)
                 datas = cursor.fetchall()
                 result = {}
@@ -112,14 +113,15 @@ class DbConnect:
                             "checkin_log": []
                         }
 
-                    if item['ticket_checkin_id'] != None and item['ticket_checkin_at'] != None:
+                    if item['ticket_checkin_id'] is not None and item['ticket_checkin_at'] is not None:
                         result[member_no]['ticket_id'][ticket_id]['checkin_log'].append({
                             "ticket_checkin_id": item['ticket_checkin_id'],
                             "ticket_checkin_at": item['ticket_checkin_at']
                         })
-
-                return result
+            self.connection.commit()
+            return result
         except Exception as e:
+            self.connection.rollback()
             traceback_str = traceback.format_exc()
             print(f"An exception occurred: {e} \n Traceback: {traceback_str}")
 
@@ -144,13 +146,14 @@ class DbConnect:
         nowDate = datetime.now()
         comment = datas.get('comment', '')
         try:
+            self.connection.begin()
             with self.connection.cursor() as cursor:
                 sql = "INSERT INTO new_ticket_checkin SET type=%s, device_id=%s, ticket_sign_id=%s, gate_no=%s, comment=%s, create_at=%s, checkin_at=%s"
                 cursor.execute(sql, (type, deviceId, ticketSignId, gateNo, comment, nowDate, nowDate))
-                self.connection.commit()
-
-                return cursor.rowcount
+            self.connection.commit()
+            return cursor.rowcount
         except Exception as e:
+            self.connection.rollback()
             print(f"Error: {e}")
 
     def memberCheckIn(self, params):
@@ -158,6 +161,7 @@ class DbConnect:
         ticketSignID = params.get('ticketSignID', 0)
         date = params.get('date', '')
         try:
+            self.connection.begin()
             with self.connection.cursor() as cursor:
                 if date != '':
                     sql = f"SELECT id FROM new_ticket_checkin WHERE ticket_sign_id = {ticketSignID} AND DATE(create_at) = '{date}'"
@@ -165,9 +169,10 @@ class DbConnect:
                     sql = f"SELECT id FROM new_ticket_checkin WHERE ticket_sign_id = {ticketSignID}"
                 cursor.execute(sql)
                 checkin = cursor.fetchall()
-
-                return checkin
+            self.connection.commit()
+            return checkin
         except Exception as e:
+            self.connection.rollback()
             print(f"Error: {e}")
     
     def getMemberCheckIn(self, ticketID):
@@ -177,7 +182,6 @@ class DbConnect:
                 sql = f"SELECT s.member_id, m.name, s.id, s.ticket_id FROM new_ticket_checkin AS c LEFT JOIN new_ticket_sign AS s on s.id = c.ticket_sign_id LEFT JOIN new_member as m ON m.id = s.member_id WHERE s.ticket_id in ({ticketID}) GROUP BY s.member_id";
                 cursor.execute(sql)
                 members = cursor.fetchall()
-
                 result = set()
                 for member in members:
                     result.add(member['member_id'])

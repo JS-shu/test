@@ -51,7 +51,7 @@ class MainWindow(QWidget):
         self.customMsgBox = CustomMsgBox(self)
 
         # 資料庫連線
-        self.db = bConnect(self)
+        self.db = DbConnect(self)
         self.db.connect()
 
         # 相機裝置檢測
@@ -133,7 +133,7 @@ class MainWindow(QWidget):
     
     def updateCameraView(self,frame):
         # 掃描，並執行資料驗證。 相機畫面顯示
-        frame = cv2.resize(frame, (640, 480))
+        frame = cv2.resize(frame, (960, 600))
         height, width, channel = frame.shape
         bytesPerLine = channel * width
         qImage = QImage(frame.data, width, height, bytesPerLine, QImage.Format.Format_RGB888).rgbSwapped()

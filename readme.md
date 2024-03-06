@@ -27,7 +27,7 @@
         ```
             import cv2, numpy as np, sys, traceback
 
-            from db_connect import db_connect
+            from dbConnect import DbConnect
             from customMsgBox import CustomMsgBox
             from printqrcode import QRCodePrinter
             from topLinkIntranet import TopLinkIntranet
@@ -53,7 +53,7 @@
             from escpos.printer import Serial
             import requests
         ```
-    - db_connect.py
+    - dbConnect.py
         ```
             import pymysql
             from collections import defaultdict
