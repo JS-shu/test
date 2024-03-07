@@ -1,6 +1,24 @@
-import io, requests
+import io
+import requests
+
 from escpos.printer import Serial
 from PIL import Image
+from PyQt6.QtCore import QThread, pyqtSignal
+
+
+class PrintThread(QThread):
+    finished = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.parent = parent
+
+    def run(self):
+        self.parent.printer.printTickets('offline', self.member, self.outPutData)
+        self.printType = None
+        self.member = None
+        self.outPutData = []
+        self.finished.emit()
 
 
 class QRCodePrinter:
@@ -68,13 +86,16 @@ class QRCodePrinter:
             return new_img
 
     def printQrCodeOffline(self, data):
-        for d in data:
-            if d['image'] != '':
-                self.ser.image(d['image'], center=True)
-            self.ser.set_with_default(align="center",width=d['fontSize'], height=d['fontSize'], custom_size=d['fontSize'])
+        try:
+            for d in data:
+                if d['image'] != '':
+                    self.ser.image(d['image'], center=True)
+                self.ser.set_with_default(align="center",width=d['fontSize'], height=d['fontSize'], custom_size=d['fontSize'])
+                if d['text'] != '':
+                    self.ser._raw('\n'.encode('big5'))
+                    self.ser._raw(f"{d['text']}\n".encode('big5'))
 
-            if d['text'] != '':
-                self.ser._raw('\n'.encode('big5'))
-                self.ser._raw(f"{d['text']}\n".encode('big5'))
-
-            self.ser.cut(mode='PART')
+                self.ser.cut(mode='PART')
+        except Exception as e:
+            print(f"An exception occurred: {e}")
+            return False

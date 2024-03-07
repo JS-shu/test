@@ -1,12 +1,13 @@
+import traceback
+
 from PyQt6.QtWidgets import QMessageBox, QPushButton, QLineEdit, QDialog, QVBoxLayout
 
-import traceback
 
 class CustomMsgBox:
     def __init__(self, parent=None):
         self.parent = parent
         self.ui = self.parent.ui
-        
+        self.printThread = self.parent.printThread
 
     def show(self, title, text, checkedDatas=[]):
         msgBox = QMessageBox()
@@ -71,7 +72,6 @@ class CustomMsgBox:
                 new_mode = QLineEdit.EchoMode.Password
             else:
                 new_mode = QLineEdit.EchoMode.Normal
-
             self.ui.deviceKeyInput.setEchoMode(new_mode)
         except Exception as e:
             print(f"Error: {e}")
@@ -79,13 +79,14 @@ class CustomMsgBox:
     def acceptDialog(self, checkedDatas):
         try:
             deviceKey = self.ui.deviceKeyInput.text()
-
             if (deviceKey == self.parent.selectedDevice.get('winpos_key')):
                 if len(checkedDatas) != 0:
                     imageDatas = self.parent.refactorImageData(checkedDatas['ticketID'])
                     if imageDatas:
                         if (self.parent.printerPapperCheck()):
-                            self.parent.printer.printTickets('offline', checkedDatas['member'], imageDatas) # 列印票券
+                            self.printThread.member = checkedDatas['member']
+                            self.printThread.outPutData = imageDatas
+                            self.printThread.start()
             else:
                 self.show("Warning", "設備碼錯誤!")
         except Exception as e:

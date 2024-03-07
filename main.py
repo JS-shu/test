@@ -6,11 +6,11 @@ from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QPainterPath
 from PyQt6.QtWidgets import QWidget
 from pyzbar.pyzbar import ZBarSymbol, decode
-from posPrinter import QRCodePrinter
 
 from ui import Ui_MainWindow
 from cameraDetect import CameraDetect
 from customMsgBox import CustomMsgBox
+from posPrinter import QRCodePrinter, PrintThread
 from topLinkIntranet import TopLinkIntranet
 from usbDeviceCheck import UsbDeviceCheck
 
@@ -46,6 +46,9 @@ class MainWindow(QWidget):
         # GUI 介面設定
         self.ui = Ui_MainWindow()
         self.ui.guiSetting(self)
+
+        # 紙張列印線程
+        self.printThread = PrintThread(self)
 
         # 自訂錯誤訊息框
         self.customMsgBox = CustomMsgBox(self)
@@ -100,7 +103,6 @@ class MainWindow(QWidget):
             print(f"An exception occurred: {e}")
             traceback_str = traceback.format_exc()
             print(traceback_str)
-            print(e)
 
     def deviceInit(self):
         self.devices = self.db.getDevices()
@@ -189,7 +191,6 @@ class MainWindow(QWidget):
             traceback_str = traceback.format_exc()
             print(f"An exception occurred: {e}")
             print(traceback_str)
-            print(e)
 
     def deviceChanged(self, index):
         # deivce異動檢測
@@ -248,7 +249,6 @@ class MainWindow(QWidget):
             traceback_str = traceback.format_exc()
             print(f"An exception occurred: {e}")
             print(traceback_str)
-            print(e)
             self.customMsgBox.show("Error", f"An exception occurred: {e}")
             self.ui.deviceNameLabel.clear()
 
@@ -257,10 +257,10 @@ class MainWindow(QWidget):
         if self.bindTicket == '':
             self.customMsgBox.show("Error", "請先綁定活動資料再使用。")
             return
-        
+
         queryData = {
-            'no' : scanResult,
-            'ticketID' : self.bindTicket
+            'no': scanResult,
+            'ticketID': self.bindTicket
         }
         member = self.db.getMemberTicketSignData(queryData)
         if not member:
@@ -279,14 +279,13 @@ class MainWindow(QWidget):
             ticketSignID = res.get('id')
             checkinNum = res.get('checkin_num')
             checkinNumLimitDay = res.get('checkin_num_limit_day')
-
             params = {'ticketSignID': ticketSignID}
 
-            if checkinNum == 1 :
+            if checkinNum == 1:
                 checkinRes = self.memberCheckIn(params)
                 if not checkinRes:
                     insertFields = {
-                        'type':0,
+                        'type': 0,
                         'deviceId': self.selectedDevice.get('id'),
                         'ticketSignId': ticketSignID,
                         'gateNo': self.selectedDevice.get('name'),
@@ -301,10 +300,9 @@ class MainWindow(QWidget):
                 if checkinNumLimitDay == 1:
                     params = {'ticketSignID': ticketSignID, "date": self.todayDate}
                     checkinByDayRes = self.memberCheckIn(params)
-
                     if not checkinByDayRes:
                         insertFields = {
-                            'type':0,
+                            'type': 0,
                             'deviceId': self.selectedDevice.get('id'),
                             'ticketSignId': ticketSignID,
                             'gateNo': self.selectedDevice.get('name'),
@@ -318,7 +316,7 @@ class MainWindow(QWidget):
                     checkinRes = self.memberCheckIn(params)
                     if checkinRes is None:
                         insertFields = {
-                            'type':0,
+                            'type': 0,
                             'deviceId': self.selectedDevice.get('id'),
                             'ticketSignId': ticketSignID,
                             'gateNo': self.selectedDevice.get('name'),
@@ -328,7 +326,7 @@ class MainWindow(QWidget):
                         uniqueTicketIDs.append(ticketID)
                     elif len(checkinRes) < checkinNum:
                         insertFields = {
-                            'type':0,
+                            'type': 0,
                             'deviceId': self.selectedDevice.get('id'),
                             'ticketSignId': ticketSignID,
                             'gateNo': self.selectedDevice.get('name'),
@@ -340,15 +338,15 @@ class MainWindow(QWidget):
                         rePrintTicketIDs.append(ticketID)
 
         # 取得活動票券圖檔
-        if len(uniqueTicketIDs) > 0:
+        if uniqueTicketIDs:
             outPutData = self.refactorImageData(uniqueTicketIDs)
-            if outPutData and self.printerPapperCheck():
-                self.printer.printTickets('offline', member, outPutData) # 列印票券
-
-        if len(rePrintTicketIDs) > 0:
-            checkedDatas = {'member': {'name':member['name']}, 'ticketID' : rePrintTicketIDs}
+            if outPutData and self.printerPapperCheck() :
+                self.printThread.member = member
+                self.printThread.outPutData = outPutData
+                self.printThread.start()
+        if rePrintTicketIDs:
+            checkedDatas = {'member': {'name': member['name']}, 'ticketID': rePrintTicketIDs}
             self.customMsgBox.show("Warning", f"會員 : {member['name']} - 已核銷入場，是否需要重印票券?", checkedDatas)
-            return
 
     def offlineReimburse(self, scanResult):
         # 離線核銷
@@ -357,7 +355,6 @@ class MainWindow(QWidget):
             return 
 
         memberData = self.members.get(scanResult, [])
-
         if len(memberData) != 0 :
             ticketPrintID = set()
             rePrintTicketIDs = []
@@ -382,6 +379,8 @@ class MainWindow(QWidget):
                             if len(daliyCheck) < 1:
                                 self.offlineCheckinData['ticketSignID'].append(details['ticket_sign_id'])
                                 ticketPrintID.add(ticketID)
+                            else:
+                                rePrintTicketIDs.append(ticketID)
                         else:
                             rePrintTicketIDs.append(ticketID)
                     else:
@@ -393,13 +392,13 @@ class MainWindow(QWidget):
                             ticketPrintID.add(ticketID)
                         else:
                             rePrintTicketIDs.append(ticketID)
-
-            if len(ticketPrintID) > 0 :
+            if ticketPrintID:
                 outPutData = self.refactorImageData(ticketPrintID)
                 if outPutData and self.printerPapperCheck():
-                    self.printer.printTickets('offline',  memberData, outPutData) # 列印票券
-
-            if len(rePrintTicketIDs) > 0:
+                    self.printThread.member = memberData
+                    self.printThread.outPutData = outPutData
+                    self.printThread.start()
+            if rePrintTicketIDs:
                 checkedDatas = {'member': {'name':memberData['name']}, 'ticketID': rePrintTicketIDs}
                 self.customMsgBox.show("Warning", f"會員 : {memberData['name']} - 已核銷入場，是否需要重印票券?", checkedDatas)
                 return
@@ -477,8 +476,6 @@ class MainWindow(QWidget):
     def memberCheckIn(self,ticketSignID):
         # 會員核銷
         try:
-            self.db.disconnect()
-            self.db.connect()
             checkinRes = self.db.memberCheckIn(ticketSignID)
             return checkinRes
         except Exception as e:
@@ -488,9 +485,6 @@ class MainWindow(QWidget):
     def offlineInit(self, data):
         # 離線核銷資料初始化
         try:
-            self.db.disconnect()
-            self.db.connect()
-
             # 報名會員資料
             self.members = self.db.getMemberSignTicketByTicketID(self.bindTicket)
             # 會員登記入場資料

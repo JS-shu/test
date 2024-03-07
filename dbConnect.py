@@ -1,4 +1,7 @@
-import pymysql, traceback
+import pymysql
+import traceback
+import sys
+
 from collections import defaultdict
 from configparser import ConfigParser
 from datetime import datetime
@@ -204,3 +207,4 @@ class DbConnect:
                 return result
         except Exception as e:
             print(f"Error: {e}")
+            sys.exit()
