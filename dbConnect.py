@@ -52,7 +52,7 @@ class DbConnect:
         # 取得活動核銷綁定裝置
         try:
             with self.connection.cursor() as cursor:
-                sql = "SELECT * FROM new_ticket_device"
+                sql = "SELECT * FROM new_ticket_device WHERE enable = 1"
                 cursor.execute(sql)
                 devices = cursor.fetchall()
 
