@@ -164,9 +164,9 @@ class MainWindow(QWidget):
                     cv2.polylines(image, [pts], True, (0, 255, 0), 2)
                     barcodeData = obj.data.decode("utf-8")
                     barcodeType = obj.type
-                    string = "Data: " + str(barcodeData) + " Type: " + str(barcodeType)
+                    # string = "Data: " + str(barcodeData) + " Type: " + str(barcodeType)
 
-                    cv2.putText(image, string, (x,y), cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,255), 2)
+                    # cv2.putText(image, string, (x,y), cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,0,255), 2)
 
                     # 更新cv2繪製圖檔
                     height, width, channel = image.shape

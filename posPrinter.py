@@ -26,8 +26,12 @@ class QRCodePrinter:
         self.ser = Serial(port, baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=1.00, dsrdtr=True)
 
     def checkPrinterPaper(self):
-        status = self.ser.paper_status()
-        return status
+        try:
+            status = self.ser.paper_status()
+            return status
+        except Exception as e:
+            print(f"An exception occurred: {e}")
+            return False
 
     def printTickets(self, mode, member=False, datas=[]):
         for data in datas:
