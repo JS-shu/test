@@ -79,6 +79,7 @@ class CustomMsgBox:
     def acceptDialog(self, checkedDatas):
         try:
             deviceKey = self.ui.deviceKeyInput.text()
+            print(deviceKey)
             if (deviceKey == self.parent.selectedDevice.get('winpos_key')):
                 if len(checkedDatas) != 0:
                     imageDatas = self.parent.refactorImageData(checkedDatas['ticketID'])

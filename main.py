@@ -135,7 +135,7 @@ class MainWindow(QWidget):
     
     def updateCameraView(self,frame):
         # 掃描，並執行資料驗證。 相機畫面顯示
-        frame = cv2.resize(frame, (960, 600))
+        # frame = cv2.resize(frame, (640,480))
         height, width, channel = frame.shape
         bytesPerLine = channel * width
         qImage = QImage(frame.data, width, height, bytesPerLine, QImage.Format.Format_RGB888).rgbSwapped()
@@ -212,13 +212,6 @@ class MainWindow(QWidget):
                     self.ui.deviceNameLabel.setText("     **  請重新選擇裝置  **")
                     return
                 else :
-
-                    self.ui.telLabel.show()
-                    self.ui.telInputLabel.show()
-                    self.ui.cidLabel.show()
-                    self.ui.cidInputLabel.show()
-                    self.ui.inputButton.show()
-
                     # 會員bind會員no資料
                     self.getMemberPhoneBindMemberNo = self.db.getMemberPhoneBindMemberNo(self.bindTicket)
 
@@ -243,6 +236,12 @@ class MainWindow(QWidget):
 
                 self.ui.cameraTitleLable.hide()
                 self.ui.cameraCombobox.hide()
+
+                self.ui.telLabel.show()
+                self.ui.telInputLabel.show()
+                self.ui.cidLabel.show()
+                self.ui.cidInputLabel.show()
+                self.ui.inputButton.show()
             else:
                 self.ui.deviceNameLabel.clear()
         except Exception as e:
